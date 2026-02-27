@@ -1,15 +1,13 @@
-import React from "react";
+import { useFeedStories } from "@/hooks/useStories"; // adjust path
+import { useAuthStore } from "@/utils/authStore"; // adjust path
 import {
-  View,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  Text,
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import StoryAvatar from "./StoryAvatar";
-import { useFeedStories } from "@/hooks/useStories"; // adjust path
-import Color from "@/constants/color";
-import { useAuthStore } from "@/utils/authStore"; // adjust path
 
 /**
  * StoryRow
@@ -37,14 +35,16 @@ export default function StoryRow({ onStoryPress, onAddStory }) {
   return (
     <View style={styles.container}>
       {isLoading ? (
-        <ActivityIndicator
-          color={Color.primary ?? "#4F8EF7"}
-          style={styles.loader}
-        />
+        <View style={styles.center}>
+          <ActivityIndicator color="#60ba8a" />
+          <Text style={styles.loadingText}>Loading Stories...</Text>
+        </View>
       ) : isError ? (
-        <Text style={styles.error} onPress={refetch}>
-          Failed to load stories. Tap to retry.
-        </Text>
+        <View style={styles.center}>
+          <Text style={styles.error} onPress={refetch}>
+            Failed to load stories. Tap to retry.
+          </Text>
+        </View>
       ) : (
         <FlatList
           data={listData}
@@ -74,12 +74,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
   },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#666",
+  },
   loader: {
     marginLeft: 16,
   },
   error: {
-    color: "red",
-    fontSize: 12,
-    marginLeft: 16,
+    color: "#D32F2F",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

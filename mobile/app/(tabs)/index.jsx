@@ -1,16 +1,20 @@
-import React, { useState } from "react";
-import { View, ScrollView, Text, Pressable, StyleSheet } from "react-native";
 import AppText from "@/components/AppText";
-import AppCarousel from "@/components/AppCarousel";
 import Color from "@/constants/color";
+import { useNavigation } from "expo-router";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 
+import AIAssistantBottomSheet from "@/components/AIAssistantBottomSheet";
+import HeaderToolsMenu from "@/components/home/HeaderToolsMenu";
+import PlantDetectionCarousel from "@/components/home/PlantDetectionCarousel";
+import StoryCreator from "@/components/stories/StoryCreator";
 import StoryRow from "@/components/stories/StoryRow";
 import StoryViewer from "@/components/stories/StoryViewer";
-import StoryCreator from "@/components/stories/StoryCreator";
 import { useFeedStories } from "@/hooks/useStories";
 
 export default function HomeScreen() {
   const { data: feedGroups } = useFeedStories();
+  const navigation = useNavigation();
 
   // ── Viewer state ──────────────────────────────────────────
   const [viewerVisible, setViewerVisible] = useState(false);
@@ -19,6 +23,16 @@ export default function HomeScreen() {
   // ── Creator state ─────────────────────────────────────────
   const [creatorVisible, setCreatorVisible] = useState(false);
 
+  // ── AI State ─────────────────────────────────────────
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => <HeaderToolsMenu />,
+    });
+  }, [navigation]);
+
   const handleStoryPress = (authorGroup) => {
     const idx = feedGroups?.findIndex(
       (g) => g.author._id === authorGroup.author._id,
@@ -26,6 +40,11 @@ export default function HomeScreen() {
     setViewerGroupIndex(idx >= 0 ? idx : 0);
     setViewerVisible(true);
   };
+
+  const handleImageSelected = (imageAsset) => {
+      setSelectedImage(imageAsset);
+      setBottomSheetVisible(true);
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -40,23 +59,10 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* ── Carousel ── */}
-      <AppCarousel slideWidth={350} interval={4000}>
-        <Pressable>
-          <View style={[styles.slide, { backgroundColor: "#E8F5E9" }]}>
-            <Text style={styles.slideTitle}>Take a Picture 📸</Text>
-            <Text style={styles.slideSubtitle}>Scan your skin instantly</Text>
-          </View>
-        </Pressable>
-        <View style={[styles.slide, { backgroundColor: "#FFF3E0" }]}>
-          <Text style={styles.slideTitle}>See Diagnosis 🔬</Text>
-          <Text style={styles.slideSubtitle}>AI powered analysis</Text>
-        </View>
-        <View style={[styles.slide, { backgroundColor: "#E3F2FD" }]}>
-          <Text style={styles.slideTitle}>Get Medicine 💊</Text>
-          <Text style={styles.slideSubtitle}>Recommended treatment</Text>
-        </View>
-      </AppCarousel>
+      <PlantDetectionCarousel onImageSelected={handleImageSelected} />
+
+      {/* ── Bottom padding for the custom tab bar ── */}
+      <View style={{ height: 100 }} />
 
       {/* ── Story Viewer modal ── */}
       <StoryViewer
@@ -71,6 +77,19 @@ export default function HomeScreen() {
         visible={creatorVisible}
         onClose={() => setCreatorVisible(false)}
       />
+
+      {/* ── AI Assistant Bottom Sheet ── */}
+      {bottomSheetVisible && (
+         <AIAssistantBottomSheet 
+            visible={bottomSheetVisible}
+            onClose={() => {
+                setBottomSheetVisible(false);
+                setSelectedImage(null);
+            }}
+            initialData={null}
+            initialImage={selectedImage} 
+         />
+      )}
     </ScrollView>
   );
 }

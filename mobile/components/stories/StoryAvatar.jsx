@@ -1,6 +1,5 @@
-import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 /**
  * StoryAvatar
@@ -81,10 +80,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#e8e8e8",
     borderWidth: 2,
-    borderColor: "#4F8EF7",
+    borderColor: "#60ba8a",
   },
   ownCard: {
-    borderColor: "#ccc",
+    borderColor: "#eee",
   },
   thumbnail: {
     width: "100%",
@@ -128,7 +127,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#4F8EF7",
+    backgroundColor: "#60ba8a",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
@@ -142,6 +141,6 @@ const styles = StyleSheet.create({
     bottom: -2,
     borderRadius: 14,
     borderWidth: 2.5,
-    borderColor: "#4F8EF7",
+    borderColor: "#60ba8a",
   },
 });
