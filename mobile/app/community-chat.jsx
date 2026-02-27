@@ -185,7 +185,7 @@ export default function CommunityChatScreen() {
             if (selectedImage) {
                 const filename = selectedImage.split("/").pop();
                 const match = /\.(\w+)$/.exec(filename);
-                const type = match ? `image/${match[1]}` : `image`;
+                const type = match ? `image/${match[1]}` : `image/jpeg`;
                 formData.append("image", { uri: selectedImage, name: filename, type });
             }
 

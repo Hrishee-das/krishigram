@@ -5,11 +5,23 @@ import { useAuthStore } from "../utils/authStore";
 export const useAuth = () => {
   const { logIn, logOut } = useAuthStore();
 
+  // ───────── LOGIN ─────────
   const loginMutation = useMutation({
     mutationFn: loginApi,
     onSuccess: (data) => {
-      logIn(data.token); // update zustand state
-      // optionally store token from data here
+      // Support multiple backend response structures safely
+      const token =
+        data?.token ||
+        data?.data?.token;
+
+      const userObj =
+        data?.user ||
+        data?.data?.user;
+
+      // Update zustand state (supports both old & new logIn signatures)
+      logIn(token, userObj);
+
+      // Keep old console log line
       console.log("Login successful:", data.token);
     },
     onError: (error) => {
@@ -17,6 +29,7 @@ export const useAuth = () => {
     },
   });
 
+  // ───────── LOGOUT ─────────
   const logoutMutation = useMutation({
     mutationFn: logoutApi,
     onSuccess: () => {
@@ -24,10 +37,20 @@ export const useAuth = () => {
     },
   });
 
+  // ───────── SIGNUP ─────────
   const signUpMutation = useMutation({
     mutationFn: signUpApi,
     onSuccess: (data) => {
-      logIn();
+      const token =
+        data?.token ||
+        data?.data?.token;
+
+      const userObj =
+        data?.user ||
+        data?.data?.user;
+
+      // Supports both previous and updated implementation
+      logIn(token, userObj);
     },
   });
 

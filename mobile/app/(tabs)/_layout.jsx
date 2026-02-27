@@ -49,7 +49,7 @@ const TabsLayout = () => {
         name="post"
         options={{
           title: "Krisheegram",
-          tabBarLabel: t("stories"),
+          tabBarLabel: t("post"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
           ),

@@ -68,7 +68,7 @@ export const usePlantDetection = () => {
             
             const filename = imageUri.split('/').pop();
             const match = /\.(\w+)$/.exec(filename);
-            const type = match ? `image/${match[1]}` : `image`;
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
 
             formData.append('image', { // Backend expects "image"
                 uri: imageUri,

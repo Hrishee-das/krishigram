@@ -1,16 +1,19 @@
-<<<<<<< Updated upstream
-=======
-import React, { useState } from "react";
-import { View, ScrollView, Text, Pressable, StyleSheet, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  View,
+  ScrollView,
+  Text,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { useRouter, useNavigation, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
->>>>>>> Stashed changes
+import { useTranslation } from "react-i18next";
+
 import AppText from "@/components/AppText";
 import Color from "@/constants/color";
-import { useNavigation } from "expo-router";
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, View } from "react-native";
+import AppCarousel from "@/components/AppCarousel";
 
 import AIAssistantBottomSheet from "@/components/AIAssistantBottomSheet";
 import HeaderToolsMenu from "@/components/home/HeaderToolsMenu";
@@ -21,22 +24,26 @@ import StoryViewer from "@/components/stories/StoryViewer";
 import { useFeedStories } from "@/hooks/useStories";
 
 export default function HomeScreen() {
-  const { data: feedGroups } = useFeedStories();
-<<<<<<< Updated upstream
+  const { data: feedGroups, refetch } = useFeedStories();
   const navigation = useNavigation();
   const { t } = useTranslation();
-=======
   const router = useRouter();
->>>>>>> Stashed changes
 
-  // ── Viewer state ──────────────────────────────────────────
+  // 🔄 Refetch when screen focused
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  // ── Viewer State ──────────────────────────────────────────
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerGroupIndex, setViewerGroupIndex] = useState(0);
 
-  // ── Creator state ─────────────────────────────────────────
+  // ── Creator State ─────────────────────────────────────────
   const [creatorVisible, setCreatorVisible] = useState(false);
 
-  // ── AI State ─────────────────────────────────────────
+  // ── AI Bottom Sheet State ─────────────────────────────────
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -48,44 +55,24 @@ export default function HomeScreen() {
 
   const handleStoryPress = (authorGroup) => {
     const idx = feedGroups?.findIndex(
-      (g) => g.author._id === authorGroup.author._id,
+      (g) => g.author._id === authorGroup.author._id
     );
     setViewerGroupIndex(idx >= 0 ? idx : 0);
     setViewerVisible(true);
   };
 
   const handleImageSelected = (imageAsset) => {
-      setSelectedImage(imageAsset);
-      setBottomSheetVisible(true);
-  }
-
-
+    setSelectedImage(imageAsset);
+    setBottomSheetVisible(true);
+  };
 
   return (
-<<<<<<< Updated upstream
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* ── Stories section (Facebook card style) ── */}
-      <View style={styles.storiesCard}>
-        <AppText variant="h4" style={styles.sectionTitle}>
-          {t("stories")}
-        </AppText>
-        <StoryRow
-          onStoryPress={handleStoryPress}
-          onAddStory={() => setCreatorVisible(true)}
-        />
-      </View>
-
-      <PlantDetectionCarousel onImageSelected={handleImageSelected} />
-
-      {/* ── Bottom padding for the custom tab bar ── */}
-      <View style={{ height: 100 }} />
-=======
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* ── Stories section (Facebook card style) ── */}
+        {/* ── Stories Section ── */}
         <View style={styles.storiesCard}>
           <AppText variant="h4" style={styles.sectionTitle}>
-            Stories
+            {t("stories")}
           </AppText>
           <StoryRow
             onStoryPress={handleStoryPress}
@@ -93,35 +80,48 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* ── Carousel ── */}
+        {/* ── Plant Detection Carousel ── */}
+        <PlantDetectionCarousel onImageSelected={handleImageSelected} />
+
+        {/* ── App Carousel ── */}
         <AppCarousel slideWidth={350} interval={4000}>
           <Pressable>
             <View style={[styles.slide, { backgroundColor: "#E8F5E9" }]}>
               <Text style={styles.slideTitle}>Take a Picture 📸</Text>
-              <Text style={styles.slideSubtitle}>Scan your skin instantly</Text>
+              <Text style={styles.slideSubtitle}>
+                Scan your plant instantly
+              </Text>
             </View>
           </Pressable>
+
           <View style={[styles.slide, { backgroundColor: "#FFF3E0" }]}>
             <Text style={styles.slideTitle}>See Diagnosis 🔬</Text>
-            <Text style={styles.slideSubtitle}>AI powered analysis</Text>
+            <Text style={styles.slideSubtitle}>
+              AI powered analysis
+            </Text>
           </View>
+
           <View style={[styles.slide, { backgroundColor: "#E3F2FD" }]}>
-            <Text style={styles.slideTitle}>Get Medicine 💊</Text>
-            <Text style={styles.slideSubtitle}>Recommended treatment</Text>
+            <Text style={styles.slideTitle}>Get Treatment 💊</Text>
+            <Text style={styles.slideSubtitle}>
+              Recommended solution
+            </Text>
           </View>
         </AppCarousel>
->>>>>>> Stashed changes
 
-        {/* ── Story Viewer modal ── */}
-        <StoryViewer
-          visible={viewerVisible}
-          groups={feedGroups ?? []}
-          initialGroupIndex={viewerGroupIndex}
-          onClose={() => setViewerVisible(false)}
-        />
+        {/* Bottom Padding */}
+        <View style={{ height: 120 }} />
+      </ScrollView>
 
-<<<<<<< Updated upstream
-      {/* ── Story Creator bottom sheet ── */}
+      {/* ── Story Viewer ── */}
+      <StoryViewer
+        visible={viewerVisible}
+        groups={feedGroups ?? []}
+        initialGroupIndex={viewerGroupIndex}
+        onClose={() => setViewerVisible(false)}
+      />
+
+      {/* ── Story Creator ── */}
       <StoryCreator
         visible={creatorVisible}
         onClose={() => setCreatorVisible(false)}
@@ -129,24 +129,16 @@ export default function HomeScreen() {
 
       {/* ── AI Assistant Bottom Sheet ── */}
       {bottomSheetVisible && (
-         <AIAssistantBottomSheet 
-            visible={bottomSheetVisible}
-            onClose={() => {
-                setBottomSheetVisible(false);
-                setSelectedImage(null);
-            }}
-            initialData={null}
-            initialImage={selectedImage} 
-         />
-      )}
-    </ScrollView>
-=======
-        {/* ── Story Creator bottom sheet ── */}
-        <StoryCreator
-          visible={creatorVisible}
-          onClose={() => setCreatorVisible(false)}
+        <AIAssistantBottomSheet
+          visible={bottomSheetVisible}
+          onClose={() => {
+            setBottomSheetVisible(false);
+            setSelectedImage(null);
+          }}
+          initialData={null}
+          initialImage={selectedImage}
         />
-      </ScrollView>
+      )}
 
       {/* ── Community Chat FAB ── */}
       <TouchableOpacity
@@ -156,7 +148,6 @@ export default function HomeScreen() {
         <Ionicons name="chatbubbles" size={28} color={Color.white} />
       </TouchableOpacity>
     </View>
->>>>>>> Stashed changes
   );
 }
 
@@ -167,12 +158,9 @@ const styles = StyleSheet.create({
   },
   storiesCard: {
     backgroundColor: Color.white,
-    marginHorizontal: 0,
-    marginTop: 0,
     marginBottom: 8,
     paddingTop: 12,
     paddingBottom: 8,
-    // subtle card shadow
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
