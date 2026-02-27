@@ -12,12 +12,17 @@ const messageSchema = new mongoose.Schema(
       required: true,
     },
 
-    messageType: { type: String, enum: ["text", "image", "audio", "file"], default: "text" },
+    messageType: { type: String, enum: ["text", "image", "audio", "file", "mixed"], default: "text" },
 
     text: { type: String },
 
-    fileUrl: { type: String },
-    fileName: { type: String },
+    attachments: [
+      {
+        fileUrl: { type: String },
+        fileName: { type: String },
+        fileType: { type: String, enum: ["image", "audio", "video", "file"] },
+      }
+    ],
   },
   { timestamps: true }
 );

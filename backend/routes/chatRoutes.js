@@ -6,7 +6,16 @@ import upload from "../middleware/uploadMiddleware.js";
 const router = express.Router();
 
 router.get("/:chatRoomId", protect, getMessages);
-router.post("/", protect, upload.single("file"), sendMessage);  
+router.post(
+    "/",
+    protect,
+    upload.fields([
+        { name: "image", maxCount: 5 },
+        { name: "audio", maxCount: 5 },
+        { name: "file", maxCount: 5 },
+    ]),
+    sendMessage
+);
 // router.post("/", protect, sendMessage);
 
 export default router;

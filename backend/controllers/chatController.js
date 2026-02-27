@@ -32,18 +32,57 @@ export const sendMessage = async (req, res, next) => {
   try {
     const { chatRoomId, text } = req.body;
 
-    if (!chatRoomId || !text) {
+    if (!chatRoomId) {
       return res.status(400).json({
         success: false,
-        message: "chatRoomId, regionName, district, user and text are required",
+        message: "chatRoomId is required",
       });
+    }
+
+    const attachments = [];
+    if (req.files) {
+      const processFiles = (fileArray, type) => {
+        if (fileArray) {
+          fileArray.forEach((file) => {
+            attachments.push({
+              fileUrl: `/uploads/${file.filename}`,
+              fileName: file.originalname,
+              fileType: type,
+            });
+          });
+        }
+      };
+
+      processFiles(req.files.image, "image");
+      processFiles(req.files.audio, "audio");
+      processFiles(req.files.file, "file");
+    }
+
+    if (!text && attachments.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Message text or attachments are required",
+      });
+    }
+
+    let messageType = "text";
+    if (attachments.length > 0) {
+      if (text) {
+        messageType = "mixed";
+      } else if (attachments.length === 1) {
+        messageType = attachments[0].fileType;
+      } else {
+        const types = new Set(attachments.map((a) => a.fileType));
+        messageType = types.size === 1 ? [...types][0] : "mixed";
+      }
     }
 
     const newMessage = await Message.create({
       chatRoomId,
       user: req.user._id,
-      messageType: "text",
+      messageType,
       text,
+      attachments,
     });
 
     res.status(201).json({
@@ -59,6 +98,7 @@ export const sendMessage = async (req, res, next) => {
 
 /* ======================================================
    🔹 Send File / Image / Audio Message
+   Note: This logic is now handled in `sendMessage`, but kept for backward compatibility if needed.
 ====================================================== */
 export const sendFileMessage = async (req, res, next) => {
   try {
@@ -94,8 +134,11 @@ export const sendFileMessage = async (req, res, next) => {
       user: req.user._id,
       text: text || "", // Optional text with the file
       messageType,
-      fileUrl: `/uploads/${req.file.filename}`,
-      fileName: req.file.originalname,
+      attachments: [{
+        fileUrl: `/uploads/${req.file.filename}`,
+        fileName: req.file.originalname,
+        fileType: messageType
+      }]
     });
 
     res.status(201).json({
