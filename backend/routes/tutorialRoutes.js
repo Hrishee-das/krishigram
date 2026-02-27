@@ -22,5 +22,13 @@ router
 router
   .route("/:id")
   .delete(protect, restrictTo("tutor"), tutorialController.deleteTutorial);
+  
+router.post(
+  "/search/voice",
+  protect,
+  tutorialController.uploadSearchAudio,
+  tutorialController.searchTutorialsByVoice
+);
+
 
 export default router;
