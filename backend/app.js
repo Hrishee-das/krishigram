@@ -4,6 +4,7 @@ import morgan from "morgan";
 import path from "path";
 import cookieParser from "cookie-parser";
 import { fileURLToPath } from "url";
+import tutorialRoutes from "./routes/tutorialRoutes.js";
 
 // import postRouter from "./routes/postRoutes.js";
 
@@ -73,6 +74,7 @@ app.use(cookieParser());
 app.use("/api/v1", userRouter);
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/regions", regionRoutes);
+app.use("/api/v1/tutorials", tutorialRoutes);
 // app.use("/api/v1/posts", postRouter);
 // app.use("/api/v1/aichat", aiChatRoutes);
 app.use("/api/v1/stories", storyRoutes);
