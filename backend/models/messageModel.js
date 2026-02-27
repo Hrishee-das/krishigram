@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 const messageSchema = new mongoose.Schema(
   {
     chatRoomId: { type: String, required: true },
-    regionName: { type: String, required: true },
-    district: { type: String, required: true },
+    // regionName: { type: String, required: true },
+    // district: { type: String, required: true },
 
     user: {
       type: mongoose.Schema.Types.ObjectId,
