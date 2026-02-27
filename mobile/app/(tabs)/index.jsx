@@ -1,3 +1,10 @@
+<<<<<<< Updated upstream
+=======
+import React, { useState } from "react";
+import { View, ScrollView, Text, Pressable, StyleSheet, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+>>>>>>> Stashed changes
 import AppText from "@/components/AppText";
 import Color from "@/constants/color";
 import { useNavigation } from "expo-router";
@@ -15,8 +22,12 @@ import { useFeedStories } from "@/hooks/useStories";
 
 export default function HomeScreen() {
   const { data: feedGroups } = useFeedStories();
+<<<<<<< Updated upstream
   const navigation = useNavigation();
   const { t } = useTranslation();
+=======
+  const router = useRouter();
+>>>>>>> Stashed changes
 
   // ── Viewer state ──────────────────────────────────────────
   const [viewerVisible, setViewerVisible] = useState(false);
@@ -51,6 +62,7 @@ export default function HomeScreen() {
 
 
   return (
+<<<<<<< Updated upstream
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* ── Stories section (Facebook card style) ── */}
       <View style={styles.storiesCard}>
@@ -67,15 +79,48 @@ export default function HomeScreen() {
 
       {/* ── Bottom padding for the custom tab bar ── */}
       <View style={{ height: 100 }} />
+=======
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* ── Stories section (Facebook card style) ── */}
+        <View style={styles.storiesCard}>
+          <AppText variant="h4" style={styles.sectionTitle}>
+            Stories
+          </AppText>
+          <StoryRow
+            onStoryPress={handleStoryPress}
+            onAddStory={() => setCreatorVisible(true)}
+          />
+        </View>
 
-      {/* ── Story Viewer modal ── */}
-      <StoryViewer
-        visible={viewerVisible}
-        groups={feedGroups ?? []}
-        initialGroupIndex={viewerGroupIndex}
-        onClose={() => setViewerVisible(false)}
-      />
+        {/* ── Carousel ── */}
+        <AppCarousel slideWidth={350} interval={4000}>
+          <Pressable>
+            <View style={[styles.slide, { backgroundColor: "#E8F5E9" }]}>
+              <Text style={styles.slideTitle}>Take a Picture 📸</Text>
+              <Text style={styles.slideSubtitle}>Scan your skin instantly</Text>
+            </View>
+          </Pressable>
+          <View style={[styles.slide, { backgroundColor: "#FFF3E0" }]}>
+            <Text style={styles.slideTitle}>See Diagnosis 🔬</Text>
+            <Text style={styles.slideSubtitle}>AI powered analysis</Text>
+          </View>
+          <View style={[styles.slide, { backgroundColor: "#E3F2FD" }]}>
+            <Text style={styles.slideTitle}>Get Medicine 💊</Text>
+            <Text style={styles.slideSubtitle}>Recommended treatment</Text>
+          </View>
+        </AppCarousel>
+>>>>>>> Stashed changes
 
+        {/* ── Story Viewer modal ── */}
+        <StoryViewer
+          visible={viewerVisible}
+          groups={feedGroups ?? []}
+          initialGroupIndex={viewerGroupIndex}
+          onClose={() => setViewerVisible(false)}
+        />
+
+<<<<<<< Updated upstream
       {/* ── Story Creator bottom sheet ── */}
       <StoryCreator
         visible={creatorVisible}
@@ -95,6 +140,23 @@ export default function HomeScreen() {
          />
       )}
     </ScrollView>
+=======
+        {/* ── Story Creator bottom sheet ── */}
+        <StoryCreator
+          visible={creatorVisible}
+          onClose={() => setCreatorVisible(false)}
+        />
+      </ScrollView>
+
+      {/* ── Community Chat FAB ── */}
+      <TouchableOpacity
+        style={styles.chatFab}
+        onPress={() => router.push("/regions-list")}
+      >
+        <Ionicons name="chatbubbles" size={28} color={Color.white} />
+      </TouchableOpacity>
+    </View>
+>>>>>>> Stashed changes
   );
 }
 
@@ -136,5 +198,21 @@ const styles = StyleSheet.create({
   slideSubtitle: {
     marginTop: 4,
     color: "#555",
+  },
+  chatFab: {
+    position: "absolute",
+    right: 20,
+    bottom: 20,
+    backgroundColor: Color.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });

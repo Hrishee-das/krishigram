@@ -26,10 +26,7 @@ const chatSocket = (io) => {
 
         if (
           !chatRoomId ||
-          !regionName ||
-          !district ||
           !userId ||
-          !userName ||
           !text
         ) {
           return;
@@ -37,14 +34,14 @@ const chatSocket = (io) => {
 
         const newMessage = new Message({
           chatRoomId,
-          regionName,
-          district,
-          userId,
-          userName,
+          user: userId,
           text,
         });
 
         const savedMessage = await newMessage.save();
+
+        // Populate the user reference before emitting so frontend gets the name back
+        await savedMessage.populate("user", "name _id");
 
         io.to(chatRoomId).emit("receiveMessage", savedMessage);
       } catch (error) {

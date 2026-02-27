@@ -1,0 +1,8 @@
+[
+  [
+    "https://res.cloudinary.com/dbwsruvpv/image/upload/v1772217527/message-uploads/chengamo6ofiizyxefs3.jpg"
+  ],
+  [
+    "/uploads/message-uploads/wfx3zjzvnz0jib1tylx2"
+  ]
+]

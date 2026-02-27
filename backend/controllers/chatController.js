@@ -45,7 +45,7 @@ export const sendMessage = async (req, res, next) => {
         if (fileArray) {
           fileArray.forEach((file) => {
             attachments.push({
-              fileUrl: `/uploads/${file.filename}`,
+              fileUrl: file.path || `/uploads/${file.filename}`,
               fileName: file.originalname,
               fileType: type,
             });
@@ -135,7 +135,7 @@ export const sendFileMessage = async (req, res, next) => {
       text: text || "", // Optional text with the file
       messageType,
       attachments: [{
-        fileUrl: `/uploads/${req.file.filename}`,
+        fileUrl: req.file.path || `/uploads/${req.file.filename}`,
         fileName: req.file.originalname,
         fileType: messageType
       }]

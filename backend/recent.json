@@ -1,0 +1,37 @@
+[
+  {
+    "_id": "69a1e4b78caeee455f0540b3",
+    "chatRoomId": "maharashtra_vidarbha",
+    "user": "699a082e1b3b670f8dd809e6",
+    "messageType": "image",
+    "attachments": [
+      {
+        "fileUrl": "https://res.cloudinary.com/dbwsruvpv/image/upload/v1772217527/message-uploads/chengamo6ofiizyxefs3.jpg",
+        "fileName": "7e7adc21-6e8e-43fe-b203-9cd8fb5c0162.jpeg",
+        "fileType": "image",
+        "_id": "69a1e4b78caeee455f0540b4"
+      }
+    ],
+    "createdAt": "2026-02-27T18:38:47.136Z",
+    "updatedAt": "2026-02-27T18:38:47.136Z",
+    "__v": 0
+  },
+  {
+    "_id": "69a1e3eec98a00f819606e18",
+    "chatRoomId": "maharashtra_vidarbha",
+    "user": "699a082e1b3b670f8dd809e6",
+    "messageType": "mixed",
+    "text": "Mala laaj vatte",
+    "attachments": [
+      {
+        "fileUrl": "/uploads/message-uploads/wfx3zjzvnz0jib1tylx2",
+        "fileName": "6ba945d0-a16b-46da-b8b0-d2d9861b2730.jpeg",
+        "fileType": "image",
+        "_id": "69a1e3eec98a00f819606e19"
+      }
+    ],
+    "createdAt": "2026-02-27T18:35:26.568Z",
+    "updatedAt": "2026-02-27T18:35:26.568Z",
+    "__v": 0
+  }
+]

@@ -1,0 +1,1 @@
+import dotenv from 'dotenv';import mongoose from 'mongoose';dotenv.config({path: './config.env'});mongoose.connect(process.env.DATABASE.replace('<PASSWORD>', process.env.DATABASE_PASSWORD)).then(() => mongoose.connection.db.collection('messages').find().sort({createdAt: -1}).limit(2).toArray()).then(msgs => {console.log(JSON.stringify(msgs, null, 2)); process.exit(0)});

@@ -28,6 +28,7 @@ const __dirname = path.dirname(__filename);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 // Logging (only in development)
 if (process.env.NODE_ENV === "development") {
