@@ -15,6 +15,7 @@ import userRouter from "./routes/userRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import storyRoutes from "./routes/storyRoutes.js";
 import errorHandler from "./middleware/errorMiddleware.js";
+import tutorialRoutes from "./routes/tutorialRoutes.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -74,6 +75,7 @@ app.use("/api/v1/chat", chatRoutes);
 // app.use("/api/v1/posts", postRouter);
 // app.use("/api/v1/aichat", aiChatRoutes);
 app.use("/api/v1/stories", storyRoutes);
+app.use("/api/v1/tutorials", tutorialRoutes);
 
 // Health Check
 app.get("/", (req, res) => {
