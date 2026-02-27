@@ -12,9 +12,9 @@ import globalErrorHandler from "./controllers/errorController.js";
 import userRouter from "./routes/userRoutes.js";
 
 // import aiChatRoutes from "./routes/aiChatRoutes.js";
-// import chatRoutes from "./routes/chatRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 import storyRoutes from "./routes/storyRoutes.js";
-// import errorHandler from "./middleware/errorMiddleware.js";
+import errorHandler from "./middleware/errorMiddleware.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -70,7 +70,7 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/v1", userRouter);
-// app.use("/api/v1/chat", chatRoutes);
+app.use("/api/v1/chat", chatRoutes);
 // app.use("/api/v1/posts", postRouter);
 // app.use("/api/v1/aichat", aiChatRoutes);
 app.use("/api/v1/stories", storyRoutes);
@@ -86,7 +86,7 @@ app.use((req, res, next) => {
 });
 
 // Error Handlers
-// app.use(errorHandler); // chat error middleware
+app.use(errorHandler); // chat error middleware
 app.use(globalErrorHandler);
 
 export default app;

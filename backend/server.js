@@ -7,7 +7,7 @@ import { Server } from "socket.io";
 dotenv.config({ path: "./config.env" });
 
 import app from "./app.js";
-// import chatSocket from "./sockets/chatSockets.js";
+import chatSocket from "./sockets/chatSockets.js";
 
 // Database Connection
 const DB = process.env.DATABASE.replace(
@@ -23,16 +23,16 @@ mongoose.connect(DB).then(() => {
 const server = http.createServer(app);
 
 // Setup Socket.io
-// const io = new Server(server, {
-//   cors: {
-//     origin: "http://localhost:3000",
-//     methods: ["GET", "POST"],
-//     credentials: true,
-//   },
-// });
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
 // Initialize socket logic
-// chatSocket(io);
+chatSocket(io);
 
 // Port
 const PORT = process.env.PORT || 3000;
