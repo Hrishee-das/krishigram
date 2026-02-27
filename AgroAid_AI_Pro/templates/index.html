@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krishigram AI Pro - Tester</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #2c7a7b; text-align: center; }
+        .section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        input[type="file"], input[type="text"], select, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background-color: #319795; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #285e61; }
+        .result { margin-top: 15px; padding: 15px; background: #ebf8f6; border-radius: 5px; white-space: pre-wrap; font-family: monospace; display: none; overflow-x: auto; }
+        .lang-select { margin-bottom: 10px; }
+        #recordBtn { background-color: #e53e3e; }
+        #recordBtn:hover { background-color: #c53030; }
+        #recordBtn.recording { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌾 Krishigram AI Pro Test Interface</h1>
+        
+        <div class="section">
+            <h2>🌍 Select Language</h2>
+            <select id="globalLanguage" class="lang-select">
+                <option value="English">English</option>
+                <option value="Hindi">Hindi (हिन्दी)</option>
+                <option value="Marathi">Marathi (मराठी)</option>
+                <option value="Tamil">Tamil (தமிழ்)</option>
+                <option value="Telugu">Telugu (తెలుగు)</option>
+                <option value="Bengali">Bengali (বাংলা)</option>
+                <option value="Gujarati">Gujarati (ગુજરાતી)</option>
+                <option value="Punjabi">Punjabi (ਪੰਜਾਬੀ)</option>
+                <option value="Kannada">Kannada (ಕನ್ನಡ)</option>
+            </select>
+        </div>
+        
+        <div class="section">
+            <h2>1. Plant Disease Diagnosis (Image)</h2>
+            <form id="imageForm">
+                <input type="file" id="imageInput" accept="image/*" required>
+                <button type="submit">Diagnose Image</button>
+            </form>
+            <div id="imageResult" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>2. Text & Advisory Query</h2>
+            <form id="textForm">
+                <input type="text" id="textInput" placeholder="E.g., What is the best fertilizer for wheat in winter?" required>
+                <button type="submit">Ask Question</button>
+            </form>
+            <div id="textResult" class="result"></div>
+        </div>
+        
+        <div class="section">
+            <h2>3. Voice Query (Audio)</h2>
+            <p>Click Record, speak your query, and click Stop to submit.</p>
+            <button type="button" id="recordBtn">🎙️ Start Recording</button>
+            <div id="audioResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Image Form
+        document.getElementById('imageForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append("file", document.getElementById('imageInput').files[0]);
+            
+            const resBox = document.getElementById('imageResult');
+            resBox.style.display = 'block';
+            resBox.textContent = 'Processing...';
+            try {
+                const response = await fetch('/diagnose_image', { method: 'POST', body: formData });
+                const result = await response.json();
+                resBox.textContent = JSON.stringify(result, null, 2);
+            } catch (err) {
+                resBox.textContent = "Error: " + err;
+            }
+        };
+
+        // Text Form
+        document.getElementById('textForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append("query", document.getElementById('textInput').value);
+            formData.append("language", document.getElementById('globalLanguage').value);
+
+            const resBox = document.getElementById('textResult');
+            resBox.style.display = 'block';
+            resBox.textContent = 'Processing...';
+            try {
+                const response = await fetch('/chat_query', { method: 'POST', body: formData });
+                const result = await response.json();
+                resBox.textContent = JSON.stringify(result, null, 2);
+            } catch (err) {
+                resBox.textContent = "Error: " + err;
+            }
+        };
+
+        // Audio Recording Simulation
+        let mediaRecorder;
+        let audioChunks = [];
+        const recordBtn = document.getElementById('recordBtn');
+        const audioResBox = document.getElementById('audioResult');
+
+        recordBtn.addEventListener('click', async () => {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+                    audioChunks = [];
+                    
+                    recordBtn.textContent = '🛑 Stop Recording';
+                    recordBtn.classList.add('recording');
+                    
+                    mediaRecorder.addEventListener("dataavailable", event => {
+                        audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener("stop", async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const formData = new FormData();
+                        formData.append("file", audioBlob, "query.webm");
+                        // We also send the currently selected language from the UI just for full context demo
+                        formData.append("language", document.getElementById('globalLanguage').value);
+
+                        audioResBox.style.display = 'block';
+                        audioResBox.textContent = 'Processing Audio...';
+
+                        try {
+                            const response = await fetch('/audio_query', { method: 'POST', body: formData });
+                            const result = await response.json();
+                            audioResBox.textContent = JSON.stringify(result, null, 2);
+                        } catch (err) {
+                            audioResBox.textContent = "Error: " + err;
+                        }
+
+                        // Stop tracks
+                        stream.getTracks().forEach(track => track.stop());
+                    });
+                } catch(e) {
+                    alert("Microphone access denied or not available. " + e);
+                }
+            } else {
+                mediaRecorder.stop();
+                recordBtn.textContent = '🎙️ Start Recording';
+                recordBtn.classList.remove('recording');
+            }
+        });
+    </script>
+</body>
+</html>

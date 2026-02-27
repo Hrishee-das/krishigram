@@ -1,0 +1,15 @@
+.git
+.gitignore
+venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.env
+.venv
+faiss_index/
+logs/
+*.keras
+*.h5
