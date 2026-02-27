@@ -1,34 +1,37 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useDeleteStory, useMarkStoryViewed } from "@/hooks/useStories";
+import { useAuthStore } from "@/utils/authStore";
+import { Ionicons } from "@expo/vector-icons";
+import { Video } from "expo-av";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
+  Animated,
+  Dimensions,
   Image,
+  Modal,
+  StatusBar,
+  StyleSheet,
+  Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  StyleSheet,
-  Dimensions,
-  Animated,
-  StatusBar,
-  SafeAreaView,
-  Modal,
-  Pressable,
+  View
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useMarkStoryViewed, useDeleteStory } from "@/hooks/useStories";
-import { useAuthStore } from "@/utils/authStore";
-import { Video } from "expo-av"; // optional — only if expo-av is installed
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SW, height: SH } = Dimensions.get("window");
-const STORY_DURATION = 5000; // ms per story
+const STORY_DURATION = 5000;
 
-/**
- * StoryViewer
- * Props:
- *  - visible: boolean
- *  - groups: [{ author, stories }]      — all groups in feed
- *  - initialGroupIndex: number
- *  - onClose: () => void
- */
+const StoryVideo = ({ videoUrl, paused }) => {
+    return (
+        <Video
+            source={{ uri: videoUrl }}
+            style={styles.media}
+            resizeMode="cover"
+            shouldPlay={!paused}
+            isLooping={false}
+        />
+    );
+};
+
 export default function StoryViewer({
   visible,
   groups = [],
@@ -50,6 +53,8 @@ export default function StoryViewer({
   const currentStory = currentGroup?.stories?.[storyIndex];
   const totalStories = currentGroup?.stories?.length ?? 0;
   const isOwn = currentGroup?.author?._id === currentUser?._id;
+
+  // ... (navigation logic remains)
 
   // ── Reset when group/story changes ──────────────────────────
   useEffect(() => {
@@ -160,13 +165,7 @@ export default function StoryViewer({
             resizeMode="cover"
           />
         ) : currentStory.mediaType === "video" ? (
-          <Video
-            source={{ uri: currentStory.mediaUrl }}
-            style={styles.media}
-            resizeMode="cover"
-            shouldPlay={!paused}
-            isLooping={false}
-          />
+          <StoryVideo videoUrl={currentStory.mediaUrl} paused={paused} />
         ) : (
           // Voice story fallback
           <View style={[styles.media, styles.voiceBg]}>

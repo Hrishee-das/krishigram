@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, View } from "react-native";
 import AppButton from "../../components/AppButton";
 import AppText from "../../components/AppText";
@@ -6,17 +7,18 @@ import { useAuthStore } from "../../utils/authStore";
 
 export default function ProfileScreen() {
   const { logOut, user } = useAuthStore();
+  const { t } = useTranslation();
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <AppText variant="h1">Profile</AppText>
-        <AppText variant="body1">{user?.name || "Farmer"}</AppText>
+        <AppText variant="h1">{t('profile')}</AppText>
+        <AppText variant="body1">{user?.name || t('farmer')}</AppText>
       </View>
 
       <LibraryWidget />
 
       <View style={styles.footer}>
-        <AppButton title="Log Out" onPress={logOut} variant="outline" color="#FF3B30" />
+        <AppButton title={t('log_out')} onPress={logOut} variant="outline" color="#FF3B30" />
       </View>
     </ScrollView>
   );

@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useAuthStore } from "../utils/authStore";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import "../utils/i18n"; // Import i18n to initialize it
 
 const queryClient = new QueryClient();
 
@@ -11,6 +12,7 @@ export default function RootLayout() {
       <Stack>
         <Stack.Protected guard={isLoggedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         </Stack.Protected>
         <Stack.Protected guard={!isLoggedIn}>
           <Stack.Screen name="sign-in" options={{ headerShown: false }} />

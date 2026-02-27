@@ -2,6 +2,7 @@ import AppText from "@/components/AppText";
 import Color from "@/constants/color";
 import { useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import AIAssistantBottomSheet from "@/components/AIAssistantBottomSheet";
@@ -15,6 +16,7 @@ import { useFeedStories } from "@/hooks/useStories";
 export default function HomeScreen() {
   const { data: feedGroups } = useFeedStories();
   const navigation = useNavigation();
+  const { t } = useTranslation();
 
   // ── Viewer state ──────────────────────────────────────────
   const [viewerVisible, setViewerVisible] = useState(false);
@@ -46,12 +48,14 @@ export default function HomeScreen() {
       setBottomSheetVisible(true);
   }
 
+
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* ── Stories section (Facebook card style) ── */}
       <View style={styles.storiesCard}>
         <AppText variant="h4" style={styles.sectionTitle}>
-          Stories
+          {t("stories")}
         </AppText>
         <StoryRow
           onStoryPress={handleStoryPress}

@@ -1,5 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const CustomTabBarButton = ({ children, onPress }) => (
@@ -15,6 +16,7 @@ const CustomTabBarButton = ({ children, onPress }) => (
 );
 
 const TabsLayout = () => {
+  const { t } = useTranslation();
   return (
     <Tabs
       screenOptions={{
@@ -37,7 +39,7 @@ const TabsLayout = () => {
         name="index"
         options={{
           title: "Krisheegram",
-          tabBarLabel: "Home",
+          tabBarLabel: t("home"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size} color={color} />
           ),
@@ -46,8 +48,8 @@ const TabsLayout = () => {
       <Tabs.Screen
         name="post"
         options={{
-          title: "Krisheegram", // Keep original title
-          tabBarLabel: "Post", // Keep original label
+          title: "Krisheegram",
+          tabBarLabel: t("stories"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
           ),
@@ -56,7 +58,7 @@ const TabsLayout = () => {
       <Tabs.Screen 
         name="ask" 
         options={{ 
-          title: "Ask Question", // Need to keep the original header title since user asked to not change names? Wait, they said "instead of plant detection, make that middle one for universalAI as AIAssistant". I will use floating button.
+          title: t("ask_ai"),
           tabBarLabel: "",
           tabBarIcon: ({ color }) => (
              <MaterialCommunityIcons name="robot-outline" size={32} color="#FFF" />
@@ -67,8 +69,8 @@ const TabsLayout = () => {
       <Tabs.Screen 
         name="tutorial" 
         options={{ 
-          title: "Video Tutorial", // Original name
-          tabBarLabel: "Tutorial",
+          title: t("tutorial"),
+          tabBarLabel: t("tutorial"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="play-circle" size={size} color={color} />
           )
@@ -77,8 +79,8 @@ const TabsLayout = () => {
       <Tabs.Screen 
         name="profile" 
         options={{ 
-          title: "Profile", // Original name
-          tabBarLabel: "Profile",
+          title: t("profile"),
+          tabBarLabel: t("profile"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
           )

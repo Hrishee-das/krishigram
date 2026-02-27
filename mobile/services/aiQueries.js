@@ -1,82 +1,96 @@
 import { useMutation } from '@tanstack/react-query';
+import { useAuthStore } from '../utils/authStore';
 
 // Generic local IPs for Android emulator
 import { IP_ADDRESS } from '../constants/ip';
 
-const UNIVERSAL_AI_URL = `http://${IP_ADDRESS}:8001`;
-const AGRO_AI_URL = `http://${IP_ADDRESS}:10000`;
+const BACKEND_URL = `http://${IP_ADDRESS}:3000/api/v1`;
 
-// A general fetcher with timeout
 const fetchWithTimeout = async (url, options, timeout = 60000) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
-        const response = await fetch(url, { ...options, signal: controller.signal });
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
         clearTimeout(id);
         return response;
-    } catch (err) {
+    } catch (error) {
         clearTimeout(id);
-        throw err;
+        throw error;
     }
+};
+
+const getBackendLanguage = (lang) => {
+  const mapping = {
+    'hi': 'Hindi',
+    'mr': 'Marathi',
+    'en': 'English'
+  };
+  return mapping[lang] || 'English';
 };
 
 export const useUniversalChat = () => {
   return useMutation({
-    mutationFn: async ({ text, language }) => {
+    mutationFn: async ({ text, language, sessionId }) => {
       const formData = new FormData();
-      formData.append('text', text);
-      formData.append('language', language || 'English');
+      if (text) formData.append('text', text);
+      if (sessionId) formData.append('sessionId', sessionId);
+      formData.append('language', getBackendLanguage(language));
 
-      const response = await fetchWithTimeout(`${UNIVERSAL_AI_URL}/api/universal_chat`, {
+      const token = useAuthStore.getState().token;
+
+      const response = await fetchWithTimeout(`${BACKEND_URL}/universalchat/analyze`, {
         method: 'POST',
         body: formData,
         headers: {
             'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
         },
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error('Failed to fetch from Universal AI');
+        throw new Error(data.message || 'Failed to fetch from Universal AI');
       }
-      return response.json();
+      return data;
     },
   });
 };
 
 export const usePlantDetection = () => {
     return useMutation({
-        mutationFn: async ({ imageUri }) => {
+        mutationFn: async ({ imageUri, language, sessionId }) => {
             const formData = new FormData();
+            formData.append('language', getBackendLanguage(language));
+            if (sessionId) formData.append('sessionId', sessionId);
             
             const filename = imageUri.split('/').pop();
             const match = /\.(\w+)$/.exec(filename);
             const type = match ? `image/${match[1]}` : `image`;
 
-            formData.append('file', {
+            formData.append('image', { // Backend expects "image"
                 uri: imageUri,
                 name: filename,
                 type,
             });
 
-            const response = await fetchWithTimeout(`${AGRO_AI_URL}/diagnose_image`, {
+            const token = useAuthStore.getState().token;
+
+            const response = await fetchWithTimeout(`${BACKEND_URL}/aichat/analyze`, {
                 method: 'POST',
                 body: formData,
                 headers: {
                     'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
             });
 
-            const contentType = response.headers.get("content-type");
-            let data;
-            if (contentType && contentType.includes("application/json")) {
-                data = await response.json();
-            } else {
-                const text = await response.text();
-                throw new Error("Server returned an invalid response. Please try again later.");
-            }
+            const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                const errorMsg = data.report?.error || data.message || data.error || 'Failed to diagnose image';
+                const errorMsg = data.message || data.error || 'Failed to diagnose image';
                 throw new Error(errorMsg);
             }
             return data;
@@ -86,23 +100,28 @@ export const usePlantDetection = () => {
 
 export const useAgroChat = () => {
     return useMutation({
-      mutationFn: async ({ query, language }) => {
+      mutationFn: async ({ query, language, sessionId }) => {
         const formData = new FormData();
-        formData.append('query', query);
-        formData.append('language', language || 'English');
+        formData.append('text', query); // Backend expects "text"
+        if (sessionId) formData.append('sessionId', sessionId);
+        formData.append('language', getBackendLanguage(language));
   
-        const response = await fetchWithTimeout(`${AGRO_AI_URL}/chat_query`, {
+        const token = useAuthStore.getState().token;
+  
+        const response = await fetchWithTimeout(`${BACKEND_URL}/aichat/analyze`, {
           method: 'POST',
           body: formData,
           headers: {
               'Accept': 'application/json',
+              'Authorization': `Bearer ${token}`
           },
         });
   
+        const data = await response.json();
         if (!response.ok) {
-          throw new Error('Failed to fetch from Agro AI');
+          throw new Error(data.message || 'Failed to fetch from Agro AI');
         }
-        return response.json();
+        return data;
       },
     });
 };
