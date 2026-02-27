@@ -13,7 +13,7 @@ import userRouter from "./routes/userRoutes.js";
 
 // import aiChatRoutes from "./routes/aiChatRoutes.js";
 // import chatRoutes from "./routes/chatRoutes.js";
-// import storyRoutes from "./routes/storyRoutes.js";
+import storyRoutes from "./routes/storyRoutes.js";
 // import errorHandler from "./middleware/errorMiddleware.js";
 
 const app = express();
@@ -73,7 +73,7 @@ app.use("/api/v1", userRouter);
 // app.use("/api/v1/chat", chatRoutes);
 // app.use("/api/v1/posts", postRouter);
 // app.use("/api/v1/aichat", aiChatRoutes);
-// app.use("/api/v1/stories", storyRoutes);
+app.use("/api/v1/stories", storyRoutes);
 
 // Health Check
 app.get("/", (req, res) => {
@@ -87,6 +87,6 @@ app.use((req, res, next) => {
 
 // Error Handlers
 // app.use(errorHandler); // chat error middleware
-app.use(globalErrorHandler); // global error handler
+app.use(globalErrorHandler);
 
 export default app;
