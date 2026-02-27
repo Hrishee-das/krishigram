@@ -1,8 +1,13 @@
-import dotenv from "dotenv";
+import http from "http";
 import mongoose from "mongoose";
-import express from "express";
+import dotenv from "dotenv";
+import { Server } from "socket.io";
 
+// Load environment variables
 dotenv.config({ path: "./config.env" });
+
+import app from "./app.js";
+// import chatSocket from "./sockets/chatSockets.js";
 
 // Database Connection
 const DB = process.env.DATABASE.replace(
@@ -10,23 +15,30 @@ const DB = process.env.DATABASE.replace(
   process.env.DATABASE_PASSWORD,
 );
 
-mongoose
-  .connect(DB)
-  .then(() => {
-    console.log("✅ DB connection successful!!");
-  })
-  .catch((err) => {
-    console.error("❌ DB connection error:", err);
-  });
+mongoose.connect(DB).then(() => {
+  console.log("DB connection successful!!");
+});
 
-// Initialize Express app
-const app = express();
+// Create HTTP server
+const server = http.createServer(app);
+
+// Setup Socket.io
+// const io = new Server(server, {
+//   cors: {
+//     origin: "http://localhost:3000",
+//     methods: ["GET", "POST"],
+//     credentials: true,
+//   },
+// });
+
+// Initialize socket logic
+// chatSocket(io);
 
 // Port
-const PORT = process.env.PORT || 7000;
+const PORT = process.env.PORT || 3000;
 
-// Start server
-app.listen(PORT, () => {
+// Start server (single clean listener)
+server.listen(PORT, () => {
   if (process.env.NODE_ENV === "production") {
     console.log(`🚀 Server running in PRODUCTION on port ${PORT}`);
   } else {
