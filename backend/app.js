@@ -14,6 +14,7 @@ import userRouter from "./routes/userRoutes.js";
 
 import aiChatRoutes from "./routes/aiChatRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import universalChatRoutes from "./routes/universalChatRoutes.js";
 import regionRoutes from "./routes/regionRoutes.js";
 import storyRoutes from "./routes/storyRoutes.js";
 import errorHandler from "./middleware/errorMiddleware.js";
@@ -77,6 +78,7 @@ app.use("/api/v1/regions", regionRoutes);
 app.use("/api/v1/tutorials", tutorialRoutes);
 app.use("/api/v1/posts", postRouter);
 app.use("/api/v1/aichat", aiChatRoutes);
+app.use("/api/v1/universalchat", universalChatRoutes);
 app.use("/api/v1/stories", storyRoutes);
 
 // Health Check
