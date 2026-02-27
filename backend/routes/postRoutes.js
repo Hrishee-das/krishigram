@@ -7,12 +7,16 @@ const router = express.Router();
 /* ---------------- BASE ROUTE ---------------- */
 
 // GET  -> all posts (optional filter ?type=post or ?type=successStory)
-// POST -> create post or success story
+// POST -> create post or success story (image/video/audio)
 
 router
   .route("/")
   .get(postController.getAllPosts)
-  .post(protect, postController.uploadMedia, postController.createPost);
+  .post(
+    protect,
+    postController.uploadMedia,   // supports image, video, audio
+    postController.createPost
+  );
 
 /* ---------------- INTERACTIONS ---------------- */
 
@@ -20,7 +24,14 @@ router.patch("/:id/like", protect, postController.likePost);
 
 router.patch("/:id/unlike", protect, postController.unlikePost);
 
-router.post("/:id/comment", protect, postController.addComment);
+/* ✅ UPDATED COMMENT ROUTE (NOW SUPPORTS AUDIO) */
+
+router.post(
+  "/:id/comment",
+  protect,
+  postController.uploadCommentAudio,   // 👈 VERY IMPORTANT
+  postController.addComment
+);
 
 /* ---------------- DELETE ---------------- */
 

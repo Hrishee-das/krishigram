@@ -1,5 +1,40 @@
 import mongoose from "mongoose";
 
+const commentSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    // Text comment
+    text: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    // Audio comment
+    audio: {
+      type: String, // Cloudinary URL
+      default: null,
+    },
+
+    audioPublicId: {
+      type: String,
+      default: null,
+    },
+
+    commentType: {
+      type: String,
+      enum: ["text", "audio"],
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
+
 const postSchema = new mongoose.Schema(
   {
     postType: {
@@ -23,20 +58,27 @@ const postSchema = new mongoose.Schema(
     location: {
       type: String,
       trim: true,
+      default: null,
     },
 
+    // Image / Video / Audio
     media: {
       type: String,
+      default: null,
       required: function () {
         return this.postType === "successStory";
       },
     },
 
-    mediaPublicId: String,
+    mediaPublicId: {
+      type: String,
+      default: null,
+    },
 
     mediaType: {
       type: String,
-      enum: ["image", "video", null],
+      enum: ["image", "video", "audio"],
+      default: null,
     },
 
     user: {
@@ -52,27 +94,12 @@ const postSchema = new mongoose.Schema(
       },
     ],
 
-    comments: [
-      {
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
-        text: {
-          type: String,
-          required: true,
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
+    comments: [commentSchema],
   },
   { timestamps: true }
 );
 
-// Index for feed sorting
+// Index for faster feed sorting
 postSchema.index({ createdAt: -1 });
 
 export default mongoose.model("Post", postSchema);

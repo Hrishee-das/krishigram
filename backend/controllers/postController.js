@@ -11,19 +11,35 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype.startsWith("image") ||
-      file.mimetype.startsWith("video")
-    ) {
-      cb(null, true);
-    } else {
-      cb(new AppError("Only images and videos allowed", 400), false);
-    }
-  },
+fileFilter: (req, file, cb) => {
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "video/mp4",
+    "video/mpeg",
+    "audio/mpeg",
+    "audio/wav",
+    "audio/mp3",
+    "audio/x-m4a",
+  ];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new AppError(
+        "Only images, videos and audio files are allowed",
+        400
+      ),
+      false
+    );
+  }
+},
 });
 
 export const uploadMedia = upload.single("media");
+export const uploadCommentAudio = upload.single("audio");
 
 /* ---------------- CREATE POST / SUCCESS STORY ---------------- */
 
@@ -44,10 +60,13 @@ export const createPost = catchAsync(async (req, res, next) => {
   let publicId = null;
   let mediaType = null;
 
-  // If success story → media required
+  // Success Story must include media
   if (postType === "successStory" && !req.file) {
     return next(
-      new AppError("Success Story must include image or video", 400)
+      new AppError(
+        "Success Story must include image, video or audio",
+        400
+      )
     );
   }
 
@@ -65,8 +84,15 @@ export const createPost = catchAsync(async (req, res, next) => {
 
     mediaUrl = uploadResult.secure_url;
     publicId = uploadResult.public_id;
-    mediaType =
-      uploadResult.resource_type === "video" ? "video" : "image";
+
+    // Detect correct media type
+    if (req.file.mimetype.startsWith("image")) {
+      mediaType = "image";
+    } else if (req.file.mimetype.startsWith("video")) {
+      mediaType = "video";
+    } else if (req.file.mimetype.startsWith("audio")) {
+      mediaType = "audio";
+    }
   }
 
   const post = await Post.create({
@@ -151,22 +177,40 @@ export const unlikePost = catchAsync(async (req, res, next) => {
   });
 });
 
-/* ---------------- ADD COMMENT ---------------- */
+/* ---------------- ADD COMMENT (TEXT + AUDIO) ---------------- */
 
 export const addComment = catchAsync(async (req, res, next) => {
   const post = await Post.findById(req.params.id);
 
   if (!post) return next(new AppError("Post not found", 404));
 
-  if (!req.body.text) {
-    return next(new AppError("Comment text required", 400));
+  let commentData = {
+    user: req.user.id,
+  };
+
+  // If audio comment
+  if (req.file) {
+    const base64 = req.file.buffer.toString("base64");
+    const dataURI = `data:${req.file.mimetype};base64,${base64}`;
+
+    const uploadResult = await cloudinary.uploader.upload(dataURI, {
+      folder: "krishigram/comment-audio",
+      resource_type: "auto",
+    });
+
+    commentData.commentType = "audio";
+    commentData.audio = uploadResult.secure_url;
+    commentData.audioPublicId = uploadResult.public_id;
+  } else {
+    if (!req.body.text) {
+      return next(new AppError("Comment text required", 400));
+    }
+
+    commentData.commentType = "text";
+    commentData.text = req.body.text;
   }
 
-  post.comments.push({
-    user: req.user.id,
-    text: req.body.text,
-  });
-
+  post.comments.push(commentData);
   await post.save();
 
   res.status(200).json({
@@ -175,7 +219,7 @@ export const addComment = catchAsync(async (req, res, next) => {
   });
 });
 
-/* ---------------- DELETE ---------------- */
+/* ---------------- DELETE POST ---------------- */
 
 export const deletePost = catchAsync(async (req, res, next) => {
   const post = await Post.findById(req.params.id);
@@ -188,7 +232,8 @@ export const deletePost = catchAsync(async (req, res, next) => {
 
   if (post.mediaPublicId) {
     await cloudinary.uploader.destroy(post.mediaPublicId, {
-      resource_type: post.mediaType === "video" ? "video" : "image",
+      resource_type:
+        post.mediaType === "image" ? "image" : "video",
     });
   }
 
