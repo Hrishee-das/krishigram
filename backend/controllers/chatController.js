@@ -30,9 +30,9 @@ export const getMessages = async (req, res, next) => {
 
 export const sendMessage = async (req, res, next) => {
   try {
-    const { chatRoomId, regionName, district, text } = req.body;
+    const { chatRoomId, text } = req.body;
 
-    if (!chatRoomId || !regionName || !district || !text) {
+    if (!chatRoomId || !text) {
       return res.status(400).json({
         success: false,
         message: "chatRoomId, regionName, district, user and text are required",
@@ -41,8 +41,6 @@ export const sendMessage = async (req, res, next) => {
 
     const newMessage = await Message.create({
       chatRoomId,
-      regionName,
-      district,
       user: req.user._id,
       messageType: "text",
       text,
