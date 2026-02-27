@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+python-multipart
+pydantic
+tensorflow
+google-genai
+pinecone-client
+jinja2
+python-dotenv
+sentence-transformers
+langchain-pinecone
+groq
+duckduckgo-search
+slowapi
