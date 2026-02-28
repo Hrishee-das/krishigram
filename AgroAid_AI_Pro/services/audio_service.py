@@ -1,5 +1,6 @@
 import io
 import re
+import os
 import speech_recognition as sr
 from pydub import AudioSegment
 
@@ -11,25 +12,28 @@ def process_audio_to_text(audio_bytes: bytes, language: str = "English") -> str:
         from groq import Groq
         client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-        # Convert WebM bytes to Wav/Mp3 using Pydub so Whisper can read it
-        audio_segment = AudioSegment.from_file(io.BytesIO(audio_bytes))
-        audio_io = io.BytesIO()
-        audio_segment.export(audio_io, format="mp3")
-        audio_io.seek(0)
+        audio_io = io.BytesIO(audio_bytes)
         
-        # Groq expects a file-like object with a name
-        audio_io.name = "audio.mp3"
+        # Try to use Pydub for normalization if ffmpeg is available
+        try:
+            audio_segment = AudioSegment.from_file(io.BytesIO(audio_bytes))
+            audio_io = io.BytesIO()
+            audio_segment.export(audio_io, format="mp3")
+            audio_io.seek(0)
+            audio_io.name = "audio.mp3"
+            print("DEBUG: Audio converted using Pydub.")
+        except Exception as pydub_err:
+            print(f"DEBUG: Pydub/FFmpeg fallback: {pydub_err}. Sending raw bytes.")
+            audio_io.seek(0)
+            # Default to m4a if conversion fails, as that's what the mobile app sends
+            audio_io.name = "audio.m4a" 
 
         # Map our languages to ISO tags expected by Groq
         lang_mapping = {
-            "English": "en",
-            "en": "en",
-            "Hindi": "hi",
-            "hi": "hi",
-            "Marathi": "mr",
-            "mr": "mr",
-            "Tamil": "ta",
-            "ta": "ta"
+            "English": "en", "en": "en",
+            "Hindi": "hi", "hi": "hi",
+            "Marathi": "mr", "mr": "mr",
+            "Tamil": "ta", "ta": "ta"
         }
         lang_code = lang_mapping.get(language, "en")
 
