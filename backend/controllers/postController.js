@@ -11,31 +11,31 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 },
-fileFilter: (req, file, cb) => {
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "video/mp4",
-    "video/mpeg",
-    "audio/mpeg",
-    "audio/wav",
-    "audio/mp3",
-    "audio/x-m4a",
-  ];
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "video/mp4",
+      "video/mpeg",
+      "audio/mpeg",
+      "audio/wav",
+      "audio/mp3",
+      "audio/x-m4a",
+    ];
 
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(
-      new AppError(
-        "Only images, videos and audio files are allowed",
-        400
-      ),
-      false
-    );
-  }
-},
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(
+        new AppError(
+          "Only images, videos and audio files are allowed",
+          400
+        ),
+        false
+      );
+    }
+  },
 });
 
 export const uploadMedia = upload.single("media");
@@ -125,8 +125,13 @@ export const getAllPosts = catchAsync(async (req, res) => {
     filter.postType = req.query.type;
   }
 
+  // Filter by a specific user's posts (e.g. for the profile tab)
+  if (req.query.user) {
+    filter.user = req.query.user;
+  }
+
   const posts = await Post.find(filter)
-    .populate("user", "name nameId")
+    .populate("user", "name nameId profilePic")
     .sort("-createdAt")
     .skip(skip)
     .limit(limit);

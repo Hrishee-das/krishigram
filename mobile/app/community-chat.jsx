@@ -33,6 +33,9 @@ export default function CommunityChatScreen() {
     const [selectedImage, setSelectedImage] = useState(null);
     const [recording, setRecording] = useState(null);
     const [recordedAudioUri, setRecordedAudioUri] = useState(null);
+    const recordingRef = useRef(null);
+    const isPressingRef = useRef(false);
+    const isInitializingRef = useRef(false);
     const [isUploading, setIsUploading] = useState(false);
     const [userData, setUserData] = useState(null);
 
@@ -49,8 +52,9 @@ export default function CommunityChatScreen() {
             if (socketRef.current) {
                 socketRef.current.disconnect();
             }
-            if (recording) {
-                recording.stopAndUnloadAsync();
+            if (recordingRef.current) {
+                try { recordingRef.current.stopAndUnloadAsync(); } catch (e) { }
+                recordingRef.current = null;
             }
         };
     }, []);
@@ -118,10 +122,13 @@ export default function CommunityChatScreen() {
     };
 
     const startRecording = async () => {
+        if (isInitializingRef.current) return;
+        isInitializingRef.current = true;
+        isPressingRef.current = true;
         try {
-            // Unload any stuck recording first
-            if (recording) {
-                await recording.stopAndUnloadAsync();
+            if (recordingRef.current) {
+                try { await recordingRef.current.stopAndUnloadAsync(); } catch (e) { }
+                recordingRef.current = null;
                 setRecording(null);
             }
 
@@ -133,21 +140,38 @@ export default function CommunityChatScreen() {
             const { recording: newRecording } = await Audio.Recording.createAsync(
                 Audio.RecordingOptionsPresets.HIGH_QUALITY
             );
+
+            // If the user released the button while initializing, safely destroy it immediately
+            if (!isPressingRef.current) {
+                try { await newRecording.stopAndUnloadAsync(); } catch (e) { }
+                return;
+            }
+
+            recordingRef.current = newRecording;
             setRecording(newRecording);
         } catch (err) {
-            console.error("Failed to start recording", err);
+            console.error("Failed to start recording:", err);
+        } finally {
+            isInitializingRef.current = false;
         }
     };
 
     const stopRecording = async () => {
-        if (!recording) return;
+        isPressingRef.current = false;
+        const currentRecording = recordingRef.current;
+        if (!currentRecording) return;
+
         try {
-            await recording.stopAndUnloadAsync();
-            const uri = recording.getURI();
-            setRecordedAudioUri(uri);
+            const status = await currentRecording.getStatusAsync();
+            if (status.canRecord) {
+                await currentRecording.stopAndUnloadAsync();
+                const uri = currentRecording.getURI();
+                setRecordedAudioUri(uri);
+            }
         } catch (error) {
             console.error("Failed to stop recording:", error);
         } finally {
+            recordingRef.current = null;
             setRecording(null);
             await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
         }

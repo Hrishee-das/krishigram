@@ -11,6 +11,18 @@ const userSchema = new mongoose.Schema({
     required: [true, "Please provide a unique name ID!"],
     unique: true,
   },
+  profilePic: {
+    type: String,
+    default: "",
+  },
+  district: {
+    type: String,
+    default: "",
+  },
+  state: {
+    type: String,
+    default: "",
+  },
   password: {
     type: String,
     required: [true, "Please provide a password!"],

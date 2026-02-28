@@ -3,36 +3,55 @@ import { deletePost, likePost, unlikePost } from '@/services/post.api';
 import { useAuthStore } from '@/utils/authStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import { Image } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Animated,
+  Dimensions,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import AppText from '../AppText';
 import CommentsModal from './CommentsModal';
 
+const { width } = Dimensions.get('window');
+
 export default function PostCard({ post, onDeleteSuccess }) {
   const authorName = post?.user?.name || post?.author?.name || 'Unknown User';
-  const authorPic = post?.user?.profilePic || post?.author?.profilePic || 'https://via.placeholder.com/150';
-  
-  // Format createdAt securely
+  const rawAuthorPic = post?.user?.profilePic || post?.author?.profilePic || '';
+  const hasAuthorPic = Boolean(
+    rawAuthorPic && rawAuthorPic.trim() !== '' && rawAuthorPic !== 'https://via.placeholder.com/150'
+  );
+
+  // Get first letter for avatar fallback
+  const initials = authorName.charAt(0).toUpperCase();
+
+  // Consistent avatar color based on name
+  const avatarColors = ['#60ba8a', '#4a90d9', '#e07b54', '#9b59b6', '#e74c3c', '#f39c12'];
+  const avatarColor = avatarColors[authorName.charCodeAt(0) % avatarColors.length];
+
+  // Format time ago
   const formatTime = (dateString) => {
     if (!dateString) return 'Just now';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return 'Just now';
-    
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 60) return `${Math.max(1, diffMins)}m`;
-    if (diffHours < 24) return `${diffHours}h`;
-    if (diffDays < 7) return `${diffDays}d`;
+    if (diffMins < 60) return `${Math.max(1, diffMins)}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
   };
 
   const timeAgo = formatTime(post?.createdAt);
-  
-  // Try to safely access media depending on backend response format
+
+  // Media URL resolution
   let mediaUrl = null;
   if (post?.media && Array.isArray(post.media) && post.media.length > 0) {
     mediaUrl = post.media[0].url || post.media[0].uri;
@@ -43,35 +62,68 @@ export default function PostCard({ post, onDeleteSuccess }) {
   }
 
   const isSuccessStory = post?.postType === 'successStory';
+  const isAudioPost = post?.postType === 'audio' || post?.mediaType === 'audio';
 
-  // ─── Like System State ──────────────────────────────────────────────
+  // ─── Auth ─────────────────────────────────────────────────────────────
   const currentUser = useAuthStore((state) => state.user);
   const currentUserId = currentUser?._id || currentUser?.id;
-  
-  // Initialize 'isLiked' based on whether currentUserId is in 'post.likes'
-  const initialIsLiked = Array.isArray(post?.likes) 
-    ? post.likes.some(id => 
-        id === currentUserId || 
+  const currentUserIdStr = String(currentUserId || '');
+  const postUserIdStr = String(post?.user?._id || post?.user?.id || post?.user || '');
+  const isOwner = currentUserIdStr && currentUserIdStr !== 'undefined' && currentUserIdStr === postUserIdStr;
+
+  // ─── Like state ────────────────────────────────────────────────────────
+  const initialIsLiked = Array.isArray(post?.likes)
+    ? post.likes.some(
+      (id) =>
+        id === currentUserId ||
         (typeof id === 'object' && (id._id === currentUserId || id.id === currentUserId))
-      )
+    )
     : false;
 
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(Array.isArray(post?.likes) ? post.likes.length : 0);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const likeActionQueue = useRef(Promise.resolve());
 
-  // ─── Comment System State ───────────────────────────────────────────
+  // ─── Comment state ─────────────────────────────────────────────────────
   const [comments, setComments] = useState(Array.isArray(post?.comments) ? post.comments : []);
   const [isCommentsVisible, setIsCommentsVisible] = useState(false);
 
-  // ─── Audio Playback State ───────────────────────────────────────────
+  // ─── Audio state ───────────────────────────────────────────────────────
   const [sound, setSound] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [audioDuration, setAudioDuration] = useState("0:00");
-  const isAudioPost = post?.postType === "audio" || post?.mediaType === "audio";
+  const [audioDuration, setAudioDuration] = useState('0:00');
+  const [audioProgress, setAudioProgress] = useState(0);
+  const waveAnim = useRef(new Animated.Value(0)).current;
+
+  // Sync on prop updates
+  useEffect(() => {
+    setIsLiked(initialIsLiked);
+    setLikeCount(Array.isArray(post?.likes) ? post.likes.length : 0);
+    setComments(Array.isArray(post?.comments) ? post.comments : []);
+  }, [post?.likes, post?.comments, currentUserId]);
+
+  useEffect(() => {
+    return sound ? () => { sound.unloadAsync(); } : undefined;
+  }, [sound]);
+
+  // Animate waveform when playing
+  useEffect(() => {
+    if (isPlaying) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(waveAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.timing(waveAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      waveAnim.stopAnimation();
+      waveAnim.setValue(0);
+    }
+  }, [isPlaying]);
 
   const formatAudioTime = (millis) => {
-    if (!millis) return "0:00";
+    if (!millis) return '0:00';
     const minutes = Math.floor(millis / 60000);
     const seconds = ((millis % 60000) / 1000).toFixed(0);
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -86,17 +138,19 @@ export default function PostCard({ post, onDeleteSuccess }) {
         await sound.playAsync();
         setIsPlaying(true);
       } else if (mediaUrl) {
-        // Initialize sound
-        const { sound: newSound, status } = await Audio.Sound.createAsync(
+        const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: mediaUrl },
-          { shouldPlay: true },
-          (playStatus) => {
-            if (playStatus.isLoaded && playStatus.durationMillis) {
-              setAudioDuration(formatAudioTime(playStatus.durationMillis));
+          { shouldPlay: true, isLooping: false },
+          (status) => {
+            if (status.isLoaded && status.durationMillis) {
+              setAudioDuration(formatAudioTime(status.durationMillis));
+              if (status.positionMillis && status.durationMillis) {
+                setAudioProgress(status.positionMillis / status.durationMillis);
+              }
             }
-            if (playStatus.didJustFinish) {
+            if (status.didJustFinish) {
               setIsPlaying(false);
-              newSound.setPositionAsync(0);
+              setAudioProgress(0);
             }
           }
         );
@@ -108,215 +162,223 @@ export default function PostCard({ post, onDeleteSuccess }) {
     }
   };
 
-  useEffect(() => {
-    return sound ? () => { sound.unloadAsync(); } : undefined;
-  }, [sound]);
-
-  // Sync state if 'post' prop updates heavily
-  useEffect(() => {
-    setIsLiked(initialIsLiked);
-    setLikeCount(Array.isArray(post?.likes) ? post.likes.length : 0);
-    setComments(Array.isArray(post?.comments) ? post.comments : []);
-  }, [post?.likes, post?.comments, currentUserId]);
-
-  const likeActionQueue = useRef(Promise.resolve());
-
   const handleLike = () => {
-    // 1. Optimistic UI update INSTANTLY!
     const actionIsLike = !isLiked;
     setIsLiked(actionIsLike);
-    setLikeCount(prev => actionIsLike ? prev + 1 : prev - 1);
-
-    // Bounce animation if liking
+    setLikeCount((prev) => (actionIsLike ? prev + 1 : prev - 1));
     if (actionIsLike) {
       Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 1.3, duration: 150, useNativeDriver: true }),
-        Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true })
+        Animated.timing(scaleAnim, { toValue: 1.35, duration: 120, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
       ]).start();
     }
-
-    // 2. Queue the Backend API calls sequentially to prevent Race Conditions
     likeActionQueue.current = likeActionQueue.current.then(async () => {
       try {
         if (post?._id || post?.id) {
-          if (actionIsLike) {
-            await likePost(post._id || post.id);
-          } else {
-            await unlikePost(post._id || post.id);
-          }
+          if (actionIsLike) await likePost(post._id || post.id);
+          else await unlikePost(post._id || post.id);
         }
       } catch (error) {
-        console.log("LIKE/UNLIKE ERROR TRACE:", error);
-        
-        const errMsg = error?.message?.toLowerCase() || "";
-        const wasAlreadyLiked = errMsg.includes("already liked");
-
-        // If it's just "already liked", backend state is fine. Otherwise, genuine network failure.
-        // We could revert the UI here for genuine failures, but for optimal smooth feel we will just log it.
-        // Instagram rarely visibly reverts its heart icon on slow networks natively unless you refresh.
+        console.log('LIKE ERROR:', error);
       }
     });
   };
 
   const handleCommentAdded = (newComment) => {
-    // Optimistically add comment to list
-    setComments(prev => [...prev, newComment]);
+    setComments((prev) => [...prev, newComment]);
   };
 
-  const currentUserIdStr = String(currentUserId || "");
-  const postUserIdStr = String(post?.user?._id || post?.user?.id || post?.user || "");
-  const isOwner = currentUserIdStr && currentUserIdStr !== "undefined" && currentUserIdStr === postUserIdStr;
-
-  useEffect(() => {
-    console.log("PostCard Ownership Check:", {
-      postId: post?._id || post?.id,
-      currentUserIdStr,
-      postUserIdStr,
-      isOwner,
-      postUserRaw: post?.user
-    });
-  }, [currentUserIdStr, postUserIdStr, isOwner, post?._id]);
-
-  const handleOptionsPress = () => {
-    if (isOwner) {
-      Alert.alert(
-        "Post Options",
-        "What would you like to do?",
-        [
-          { text: "Cancel", style: "cancel" },
-          { 
-            text: "Delete Post", 
-            style: "destructive",
-            onPress: async () => {
-              try {
-                await deletePost(post._id || post.id);
-                if (onDeleteSuccess) {
-                  onDeleteSuccess(post._id || post.id);
-                }
-              } catch (error) {
-                Alert.alert("Error", "Could not delete post");
-              }
-            }
-          }
-        ]
-      );
+  const handleShare = async () => {
+    try {
+      const postText = post?.description || post?.title || 'Check out this post on KrishiGram!';
+      const shareContent = mediaUrl
+        ? `${postText}\n\n${mediaUrl}`
+        : postText;
+      await Share.share({
+        message: shareContent,
+        title: 'KrishiGram Post',
+      });
+    } catch (error) {
+      console.log('Share error:', error);
     }
   };
+
+  const handleOptionsPress = () => {
+    if (!isOwner) return;
+    Alert.alert('Post Options', 'What would you like to do?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete Post',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deletePost(post._id || post.id);
+            if (onDeleteSuccess) onDeleteSuccess(post._id || post.id);
+          } catch {
+            Alert.alert('Error', 'Could not delete post');
+          }
+        },
+      },
+    ]);
+  };
+
+  // Wave bar heights (6 bars animated)
+  const waveHeights = [14, 22, 18, 28, 16, 24];
 
   return (
     <>
       <View style={styles.card}>
-        {/* Post Header */}
+
+        {/* ── Success Story Banner ── */}
+        {isSuccessStory && (
+          <View style={styles.storyBanner}>
+            <MaterialCommunityIcons name="star-circle" size={14} color="#fff" />
+            <AppText style={styles.storyBannerText}>Success Story</AppText>
+          </View>
+        )}
+
+        {/* ── Header ── */}
         <View style={styles.header}>
-          <Image source={{ uri: authorPic }} style={styles.profilePic} />
+          {/* Avatar */}
+          {hasAuthorPic ? (
+            <View style={[styles.avatarRing, { borderColor: avatarColor }]}>
+              <Image source={{ uri: rawAuthorPic }} style={styles.avatar} contentFit="cover" />
+            </View>
+          ) : (
+            <View style={[styles.avatarFallback, { backgroundColor: avatarColor }]}>
+              <AppText style={styles.avatarInitial}>{initials}</AppText>
+            </View>
+          )}
+
+          {/* Name + meta */}
           <View style={styles.headerText}>
             <AppText style={styles.userName}>{authorName}</AppText>
             <View style={styles.metaRow}>
+              <Ionicons name="time-outline" size={12} color="#9ca3af" />
               <AppText style={styles.timeText}>{timeAgo}</AppText>
-              <View style={styles.dotSeparator} />
-              {isSuccessStory ? (
-                <MaterialCommunityIcons name="star-circle" size={14} color="#60ba8a" />
-              ) : (
-                <Ionicons name="earth" size={12} color="#8E8E93" />
-              )}
               {post?.location && (
                 <>
-                  <View style={styles.dotSeparator} />
+                  <View style={styles.dot} />
+                  <Ionicons name="location-outline" size={12} color="#9ca3af" />
                   <AppText style={styles.timeText}>{post.location}</AppText>
                 </>
               )}
             </View>
           </View>
-          
+
           {isOwner && (
-            <TouchableOpacity 
-              style={styles.optionsButton} 
-              hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+            <TouchableOpacity
+              style={styles.optionsBtn}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               onPress={handleOptionsPress}
             >
-              <Ionicons name="ellipsis-horizontal" size={20} color="#8E8E93" />
+              <Ionicons name="ellipsis-horizontal" size={20} color="#9ca3af" />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Post Content */}
-        <View style={styles.content}>
-          <AppText style={styles.postText}>{post?.description || post?.title || ''}</AppText>
-        </View>
+        {/* ── Post Text ── */}
+        {!!(post?.description || post?.title) && (
+          <View style={styles.textBlock}>
+            <AppText style={styles.postText}>{post?.description || post?.title}</AppText>
+          </View>
+        )}
 
-        {/* Post Media / Audio Player */}
-        {mediaUrl && isAudioPost ? (
-          <View style={styles.audioPlayerContainer}>
-            <View style={styles.audioPlayerInner}>
-              <TouchableOpacity onPress={toggleAudio} style={styles.audioPlayBtn}>
-                <Ionicons name={isPlaying ? "pause" : "play"} size={22} color="#fff" />
-              </TouchableOpacity>
-              <View style={styles.audioInfo}>
-                <AppText style={styles.audioTitle}>Voice Note</AppText>
-                <AppText style={styles.audioDuration}>{audioDuration}</AppText>
+        {/* ── Media ── */}
+        {mediaUrl && !isAudioPost && (
+          <Image source={{ uri: mediaUrl }} style={styles.media} contentFit="cover" />
+        )}
+
+        {/* ── Audio Player ── */}
+        {mediaUrl && isAudioPost && (
+          <View style={styles.audioCard}>
+            <TouchableOpacity onPress={toggleAudio} style={styles.audioPlayBtn} activeOpacity={0.8}>
+              <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#fff" />
+            </TouchableOpacity>
+
+            <View style={styles.audioMid}>
+              <AppText style={styles.audioLabel}>Voice Note</AppText>
+              {/* Progress bar */}
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${audioProgress * 100}%` }]} />
               </View>
-              <View style={styles.audioWaveform}>
-                {[1, 2, 3, 4, 5, 6].map(i => (
-                  <View 
-                    key={i} 
-                    style={[styles.waveLine, { height: isPlaying ? 10 + Math.random() * 15 : 6 }]} 
-                  />
-                ))}
-              </View>
+              <AppText style={styles.audioDuration}>{audioDuration}</AppText>
+            </View>
+
+            {/* Animated waveform */}
+            <View style={styles.waveform}>
+              {waveHeights.map((h, i) => (
+                <Animated.View
+                  key={i}
+                  style={[
+                    styles.waveLine,
+                    {
+                      height: isPlaying
+                        ? waveAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [4, h],
+                        })
+                        : 4,
+                      backgroundColor: isPlaying ? Color.primary : '#d1d5db',
+                    },
+                  ]}
+                />
+              ))}
             </View>
           </View>
-        ) : mediaUrl ? (
-          <Image 
-            source={{ uri: mediaUrl }} 
-            style={styles.postMedia} 
-            resizeMode="cover"
-          />
-        ) : null}
+        )}
 
-        {/* Interaction Counts */}
-        <View style={styles.statsRow}>
-          <View style={styles.likesCount}>
-            <View style={styles.likeIconBg}>
-              <Ionicons name="heart" size={10} color="white" />
+        {/* ── Stats strip ── */}
+        <View style={styles.statsStrip}>
+          <View style={styles.statLeft}>
+            <View style={styles.likesBubble}>
+              <Ionicons name="heart" size={11} color="#fff" />
             </View>
             <AppText style={styles.statsText}>{likeCount}</AppText>
           </View>
           <TouchableOpacity onPress={() => setIsCommentsVisible(true)}>
-            <AppText style={styles.statsText}>{comments.length} comments</AppText>
+            <AppText style={styles.statsText}>
+              {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+            </AppText>
           </TouchableOpacity>
         </View>
 
         <View style={styles.divider} />
 
-        {/* Action Buttons */}
+        {/* ── Action Bar ── */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionButton} activeOpacity={0.7} onPress={handleLike}>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleLike} activeOpacity={0.7}>
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-              <Ionicons 
-                name={isLiked ? "heart" : "heart-outline"} 
-                size={22} 
-                color={isLiked ? "#60ba8a" : "#65676B"} 
+              <Ionicons
+                name={isLiked ? 'heart' : 'heart-outline'}
+                size={21}
+                color={isLiked ? '#e74c3c' : '#6b7280'}
               />
             </Animated.View>
-            <AppText style={[styles.actionText, isLiked && { color: "#60ba8a" }]}>
-              Like
-            </AppText>
+            <AppText style={[styles.actionText, isLiked && { color: '#e74c3c' }]}>Like</AppText>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} activeOpacity={0.7} onPress={() => setIsCommentsVisible(true)}>
-            <Ionicons name="chatbubble-outline" size={21} color="#65676B" />
+          <View style={styles.actionDivider} />
+
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => setIsCommentsVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chatbubble-outline" size={20} color="#6b7280" />
             <AppText style={styles.actionText}>Comment</AppText>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
-            <Ionicons name="paper-plane-outline" size={21} color="#65676B" />
+          <View style={styles.actionDivider} />
+
+          <TouchableOpacity style={styles.actionBtn} onPress={handleShare} activeOpacity={0.7}>
+            <Ionicons name="paper-plane-outline" size={20} color="#6b7280" />
             <AppText style={styles.actionText}>Share</AppText>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Render Comment Modal Below Card */}
-      <CommentsModal 
+      <CommentsModal
         visible={isCommentsVisible}
         onClose={() => setIsCommentsVisible(false)}
         post={post}
@@ -329,175 +391,200 @@ export default function PostCard({ post, onDeleteSuccess }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Color.white,
-    marginBottom: 12,
-    marginHorizontal: 12,
-    borderRadius: 16,
-    // Modern shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    backgroundColor: '#fff',
+    marginBottom: 10,
+    marginHorizontal: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
     shadowRadius: 12,
-    elevation: 3,
+    elevation: 4,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
   },
+
+  /* ── Success story banner ── */
+  storyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Color.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  storyBannerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.4,
+  },
+
+  /* ── Header ── */
   header: {
     flexDirection: 'row',
-    padding: 16,
     alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  profilePic: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginRight: 12,
-    backgroundColor: '#e8f5e9',
-    borderWidth: 1,
-    borderColor: '#e0ece0',
+  avatarRing: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    padding: 2,
+    marginRight: 10,
+    overflow: 'hidden',
   },
-  headerText: {
-    flex: 1,
+  avatar: { width: '100%', height: '100%', borderRadius: 20 },
+  avatarFallback: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginRight: 10,
+    alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarInitial: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  headerText: { flex: 1 },
   userName: {
+    fontSize: 15,
     fontWeight: '700',
-    fontSize: 16,
-    color: '#1c1e21',
+    color: '#111827',
     marginBottom: 2,
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeText: {
-    color: '#8E8E93',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  dotSeparator: {
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  timeText: { fontSize: 12, color: '#9ca3af', fontWeight: '500' },
+  dot: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: '#C7C7CC',
-    marginHorizontal: 6,
+    backgroundColor: '#d1d5db',
+    marginHorizontal: 2,
   },
-  optionsButton: {
-    padding: 4,
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
+  optionsBtn: { padding: 4 },
+
+  /* ── Text ── */
+  textBlock: { paddingHorizontal: 14, paddingBottom: 12 },
   postText: {
     fontSize: 15,
-    color: '#3A3A3C',
-    lineHeight: 22,
+    color: '#374151',
+    lineHeight: 23,
     fontWeight: '400',
   },
-  postMedia: {
+
+  /* ── Media ── */
+  media: {
     width: '100%',
-    height: 320,
-    backgroundColor: '#F2F2F7',
+    height: width * 0.72,
+    backgroundColor: '#f3f4f6',
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  likesCount: {
+
+  /* ── Audio player ── */
+  audioCard: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  likeIconBg: {
-    backgroundColor: '#60ba8a', // Krishigram green
-    borderRadius: 12,
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  statsText: {
-    color: '#8E8E93',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F2F2F7',
-    marginHorizontal: 16,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  actionText: {
-    marginLeft: 8,
-    color: '#65676B',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  audioPlayerContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: '#F8F9FA',
+    marginHorizontal: 14,
+    marginBottom: 14,
+    backgroundColor: '#f8fafc',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#EFEFEF',
-    padding: 12,
-  },
-  audioPlayerInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderColor: '#e5e7eb',
+    padding: 14,
+    gap: 12,
   },
   audioPlayBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#60ba8a', // Krishigram active color
-    justifyContent: 'center',
+    backgroundColor: Color.primary,
     alignItems: 'center',
-    marginRight: 12,
-    shadowColor: '#60ba8a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
+    shadowColor: Color.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    elevation: 4,
   },
-  audioInfo: {
-    flex: 1,
-  },
-  audioTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1c1e21',
-  },
-  audioDuration: {
+  audioMid: { flex: 1 },
+  audioLabel: {
     fontSize: 13,
-    color: '#8E8E93',
-    marginTop: 2,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 6,
   },
-  audioWaveform: {
+  progressTrack: {
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Color.primary,
+    borderRadius: 2,
+  },
+  audioDuration: { fontSize: 11, color: '#9ca3af' },
+  waveform: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 30,
     gap: 3,
-    marginLeft: 10,
+    height: 32,
   },
-  waveLine: {
-    width: 3,
-    backgroundColor: '#C7C7CC',
-    borderRadius: 2,
-  }
+  waveLine: { width: 3, borderRadius: 2 },
+
+  /* ── Stats ── */
+  statsStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  statLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  likesBubble: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#e74c3c',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statsText: { color: '#6b7280', fontSize: 13, fontWeight: '500' },
+
+  /* ── Divider ── */
+  divider: { height: 1, backgroundColor: '#f3f4f6', marginHorizontal: 14 },
+
+  /* ── Actions ── */
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 6,
+    borderRadius: 12,
+  },
+  actionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  actionDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#f3f4f6',
+  },
 });

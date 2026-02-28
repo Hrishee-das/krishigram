@@ -61,7 +61,15 @@ export const createTutorial = catchAsync(async (req, res, next) => {
 /* ---------------- GET ALL TUTORIALS ---------------- */
 
 export const getAllTutorials = catchAsync(async (req, res) => {
-  const tutorials = await Tutorial.find()
+  const filter = {};
+  if (req.query.search) {
+    filter.$or = [
+      { title: { $regex: req.query.search, $options: "i" } },
+      { description: { $regex: req.query.search, $options: "i" } },
+    ];
+  }
+
+  const tutorials = await Tutorial.find(filter)
     .populate("tutor", "name nameId")
     .sort("-createdAt");
 
@@ -105,7 +113,7 @@ const uploadAudioMulter = multer({
     if (file.mimetype.startsWith("audio") || file.mimetype.startsWith("video")) {
       cb(null, true);
     } else {
-       cb(new AppError("Only audio/video files are allowed for search", 400), false);
+      cb(new AppError("Only audio/video files are allowed for search", 400), false);
     }
   }
 });
@@ -121,22 +129,22 @@ export const searchTutorialsByVoice = catchAsync(async (req, res, next) => {
 
   // 1. Get Keywords from Gemini
   const keywordsText = await extractKeywordsFromAudio(req.file.buffer, req.file.mimetype);
-  
+
   if (!keywordsText) {
-     return next(new AppError("Could not understand the audio.", 400));
+    return next(new AppError("Could not understand the audio.", 400));
   }
 
   // 2. Format keywords for MongoDB search
   // E.g., "wheat pests yellow leaves" -> search by regex
   const keywordsArray = keywordsText.split(/\s+/).filter(word => word.length > 2);
-  
+
   if (keywordsArray.length === 0) {
-     return res.status(200).json({ status: "success", data: [] });
+    return res.status(200).json({ status: "success", data: [] });
   }
 
   // Create regex pattern to match ANY of the keywords
   const regexPattern = keywordsArray.join('|');
-  
+
   const tutorials = await Tutorial.find({
     $or: [
       { title: { $regex: regexPattern, $options: 'i' } },

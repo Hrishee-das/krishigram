@@ -12,11 +12,13 @@ const getAuthToken = () => {
   }
 };
 
-// ✅ Fetch All Posts
-export const fetchPosts = async () => {
+// ✅ Fetch All Posts (with optional query params for user/type filtering)
+export const fetchPosts = async (params = {}) => {
   const token = getAuthToken();
+  const queryParams = new URLSearchParams(params).toString();
+  const url = queryParams ? `${BASE_URL}/posts?${queryParams}` : `${BASE_URL}/posts`;
 
-  const response = await fetch(`${BASE_URL}/posts`, {
+  const response = await fetch(url, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -31,6 +33,24 @@ export const fetchPosts = async () => {
   }
 
   return data.data;
+};
+
+// ✅ Fetch MY stories from the Story model (NOT the Post model)
+export const fetchMyStories = async () => {
+  const token = getAuthToken();
+  const response = await fetch(`${BASE_URL}/stories/my`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to fetch stories");
+  }
+  return data.data; // array of Story docs: { author, mediaUrl, mediaType, caption, ... }
 };
 
 // ✅ Create Post
@@ -49,7 +69,7 @@ export const createPost = async (postData) => {
 
   if (postData.media?.uri) {
     const ext = postData.postType === "audio" ? "m4a" : "jpg";
-    
+
     let mimeType = postData.media.mimeType;
     if (!mimeType) {
       if (postData.postType === "audio") mimeType = "audio/m4a";
@@ -84,7 +104,7 @@ export const createPost = async (postData) => {
 // ✅ Like Post
 export const likePost = async (postId) => {
   const token = getAuthToken();
-  
+
   const response = await fetch(`${BASE_URL}/posts/${postId}/like`, {
     method: "PATCH",
     headers: {
@@ -103,7 +123,7 @@ export const likePost = async (postId) => {
 // ✅ Unlike Post
 export const unlikePost = async (postId) => {
   const token = getAuthToken();
-  
+
   const response = await fetch(`${BASE_URL}/posts/${postId}/unlike`, {
     method: "PATCH",
     headers: {
@@ -122,7 +142,7 @@ export const unlikePost = async (postId) => {
 // ✅ Delete Post
 export const deletePost = async (postId) => {
   const token = getAuthToken();
-  
+
   const response = await fetch(`${BASE_URL}/posts/${postId}`, {
     method: "DELETE",
     headers: {
@@ -154,7 +174,7 @@ export const addComment = async (postId, text) => {
     },
     body: JSON.stringify({ text })
   });
-  
+
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || "Failed to add comment");
@@ -168,7 +188,7 @@ export const addAudioComment = async (postId, audioData) => {
   const formData = new FormData();
 
   formData.append("commentType", "audio");
-  
+
   if (audioData?.uri) {
     let mimeType = audioData.mimeType;
     if (!mimeType) {

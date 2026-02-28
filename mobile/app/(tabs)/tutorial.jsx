@@ -1,16 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Video } from "expo-av";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import AppText from "../../components/AppText";
@@ -21,16 +22,16 @@ import { useAuthStore } from "../../utils/authStore";
 const { width } = Dimensions.get("window");
 
 const TutorialVideo = ({ videoUrl }) => {
-    return (
-        <Video
-            style={styles.video}
-            source={{ uri: videoUrl }}
-            useNativeControls
-            resizeMode="contain"
-            isLooping={false}
-            shouldPlay={false}
-        />
-    );
+  return (
+    <Video
+      style={styles.video}
+      source={{ uri: videoUrl }}
+      useNativeControls
+      resizeMode="contain"
+      isLooping={false}
+      shouldPlay={false}
+    />
+  );
 };
 
 export default function TutorialScreen() {
@@ -38,15 +39,17 @@ export default function TutorialScreen() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const isTutor = user?.role === "tutor" || user?.role === "admin"; // Check if admin as fallback
-  
+
   const [tutorials, setTutorials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchTimeout = useRef(null);
 
-  const fetchTutorials = async () => {
+  const fetchTutorials = async (query = "") => {
     try {
-      const response = await getAllTutorials();
+      const response = await getAllTutorials(query);
       setTutorials(response.data || []);
       setError(null);
     } catch (err) {
@@ -60,13 +63,22 @@ export default function TutorialScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchTutorials();
+      fetchTutorials("");
     }, [])
   );
 
+  // Debounce search: wait 500ms after typing stops before searching
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      fetchTutorials(searchQuery);
+    }, 500);
+    return () => clearTimeout(searchTimeout.current);
+  }, [searchQuery]);
+
   const onRefresh = () => {
     setRefreshing(true);
-    fetchTutorials();
+    fetchTutorials(searchQuery);
   };
 
   const renderTutorialItem = ({ item }) => {
@@ -101,6 +113,18 @@ export default function TutorialScreen() {
     );
   };
 
+  /* ── Hero banner shown above list ── */
+  const ListHeader = () => (
+    <View style={styles.heroBanner}>
+      <View style={styles.heroTextBlock}>
+        <AppText style={styles.heroEyebrow}>🌾 KRISHIGRAM</AppText>
+        <AppText style={styles.heroTitle}>Farm Tutorials</AppText>
+        <AppText style={styles.heroSub}>Learn from expert tutors — at your own pace</AppText>
+      </View>
+      <Ionicons name="play-circle" size={58} color="rgba(255,255,255,0.2)" />
+    </View>
+  );
+
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
@@ -119,22 +143,48 @@ export default function TutorialScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <FlatList
-          data={tutorials}
-          keyExtractor={(item) => item._id}
-          renderItem={renderTutorialItem}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="videocam-outline" size={64} color="#ccc" />
-              <AppText style={styles.emptyText}>{t('no_tutorials')}</AppText>
+        <>
+          {/* ── Search Bar ── */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={18} color="#7f8c8d" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search tutorials..."
+                placeholderTextColor="#aaa"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                clearButtonMode="while-editing"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={18} color="#aaa" />
+                </TouchableOpacity>
+              )}
             </View>
-          }
-        />
+          </View>
+
+          <FlatList
+            data={tutorials}
+            keyExtractor={(item) => item._id}
+            renderItem={renderTutorialItem}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={!searchQuery ? <ListHeader /> : null}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="videocam-outline" size={64} color="#ccc" />
+                <AppText style={styles.emptyText}>
+                  {searchQuery ? `No tutorials found for "${searchQuery}"` : t('no_tutorials')}
+                </AppText>
+              </View>
+            }
+          />
+        </>
       )}
 
       {isTutor && (
@@ -162,7 +212,74 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 100, // Space for FAB
+    paddingBottom: 100,
+  },
+  /* ── Hero banner ── */
+  heroBanner: {
+    borderRadius: 18,
+    backgroundColor: Color.primary,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: Color.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.32,
+    shadowRadius: 10,
+    elevation: 6,
+    overflow: "hidden",
+  },
+  heroTextBlock: { flex: 1, paddingRight: 8 },
+  heroEyebrow: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.6,
+    color: "rgba(255,255,255,0.65)",
+    marginBottom: 4,
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#fff",
+    marginBottom: 5,
+  },
+  heroSub: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
+    lineHeight: 17,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
+    backgroundColor: "#F5F7FA",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#2c3e50",
+    fontWeight: "400",
+    paddingVertical: 0,
   },
   card: {
     backgroundColor: "#fff",

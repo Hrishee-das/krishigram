@@ -11,6 +11,7 @@ import {
 import AppText from "@/components/AppText";
 import CreatePostCard from "@/components/home/CreatePostCard";
 import PostCard from "@/components/home/PostCard";
+import { useAuthStore } from "@/utils/authStore";
 
 import { fetchPosts } from "@/services/post.api";
 
@@ -33,12 +34,12 @@ export default function PostTabFeedScreen() {
     try {
       const fetchedPosts = await fetchPosts();
       const postsArray = Array.isArray(fetchedPosts) ? fetchedPosts : [];
-      
+
       // Sort posts by createdAt descending (newest first)
       const sortedPosts = postsArray.sort((a, b) => {
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
-      
+
       setPosts(sortedPosts);
     } catch (e) {
       console.error("Failed to load posts", e);
@@ -63,12 +64,13 @@ export default function PostTabFeedScreen() {
     setPosts(prevPosts => prevPosts.filter(p => (p._id || p.id) !== deletedPostId));
   };
 
-  // Replace with real auth user data
-  const myProfilePic = "https://via.placeholder.com/150";
+  // Get real auth user data
+  const currentUser = useAuthStore((state) => state.user);
+  const myProfilePic = currentUser?.profilePic;
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
@@ -78,14 +80,14 @@ export default function PostTabFeedScreen() {
         {/* ── Render Posts ── */}
         <View style={styles.feedSection}>
           {loadingPosts && !refreshing ? (
-             <ActivityIndicator size="large" color="#60ba8a" style={{ marginTop: 20 }} />
+            <ActivityIndicator size="large" color="#60ba8a" style={{ marginTop: 20 }} />
           ) : posts.length === 0 ? (
-             <AppText style={styles.emptyText}>No posts yet. Be the first to share!</AppText>
+            <AppText style={styles.emptyText}>No posts yet. Be the first to share!</AppText>
           ) : (
             posts.map(post => (
-              <PostCard 
-                key={post._id || post.id} 
-                post={post} 
+              <PostCard
+                key={post._id || post.id}
+                post={post}
                 onDeleteSuccess={handleDeleteSuccess}
               />
             ))

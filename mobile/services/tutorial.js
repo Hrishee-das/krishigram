@@ -7,20 +7,17 @@ const BASE_URL = `http://${IP_ADDRESS}:3000/api/v1`;
 
 const getAuthToken = () => useAuthStore.getState().token;
 
-// Since video upload requires FormData, we might need a function to get token if auth is required
-// Assuming auth token is saved in secure store, or you might need to adjust based on how authStore works
-export const getAllTutorials = async () => {
-    // Assuming tutorials are public or you pass auth mechanism here. 
-    // The backend route is currently protected: `router.get(protect, tutorialController.getAllTutorials)`
-    // So we need to ensure credentials or tokens are sent if needed, using credentials: true on fetch
-    // depending on the auth implementation (cookie based in your case).
-    
+export const getAllTutorials = async (searchQuery = "") => {
     const token = getAuthToken();
-    const res = await fetch(`${BASE_URL}/tutorials`, {
+    let url = `${BASE_URL}/tutorials`;
+    if (searchQuery && searchQuery.trim()) {
+        url += `?search=${encodeURIComponent(searchQuery.trim())}`;
+    }
+    const res = await fetch(url, {
         method: "GET",
         headers: {
-      Authorization: `Bearer ${token}`,
-    },
+            Authorization: `Bearer ${token}`,
+        },
     });
 
     if (!res.ok) {
@@ -36,8 +33,8 @@ export const uploadTutorial = async (formData) => {
         method: "POST",
         body: formData,
         headers: {
-      Authorization: `Bearer ${token}`,
-    },
+            Authorization: `Bearer ${token}`,
+        },
     });
 
     if (!res.ok) {

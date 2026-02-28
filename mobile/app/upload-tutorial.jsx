@@ -1,13 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Video } from "expo-av";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import AppButton from "../components/AppButton";
@@ -16,23 +19,50 @@ import Color from "../constants/color";
 import { uploadTutorial } from "../services/tutorial";
 
 const VideoPreview = ({ videoUrl }) => {
-    return (
-        <Video
-            source={{ uri: videoUrl }}
-            style={styles.videoPreview}
-            resizeMode="cover"
-            shouldPlay={false}
-            useNativeControls
-        />
-    );
+  return (
+    <Video
+      source={{ uri: videoUrl }}
+      style={styles.videoPreview}
+      resizeMode="cover"
+      shouldPlay={false}
+      useNativeControls
+    />
+  );
 };
 
 export default function UploadTutorialScreen() {
-// ... (state and functions remain)
+  const router = useRouter();
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [videoUri, setVideoUri] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const pickVideo = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission required", "Please allow access to your media library.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+        quality: 1,
+      });
+      if (!result.canceled && result.assets?.length > 0) {
+        setVideoUri(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error("Video pick error:", err);
+      Alert.alert("Error", "Could not pick a video.");
+    }
+  };
 
   const clearVideo = () => {
     setVideoUri(null);
   };
+
 
   const handleUpload = async () => {
     if (!title.trim() || !description.trim() || !videoUri) {
@@ -47,12 +77,12 @@ export default function UploadTutorialScreen() {
       const formData = new FormData();
       formData.append("title", title);
       formData.append("description", description);
-      
+
       // Append video file payload
       const filename = videoUri.split('/').pop() || "tutorial.mp4";
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `video/${match[1]}` : `video/mp4`;
-      
+
       formData.append("video", {
         uri: videoUri,
         name: filename,
@@ -60,7 +90,7 @@ export default function UploadTutorialScreen() {
       });
 
       await uploadTutorial(formData);
-      
+
       Alert.alert("Success", "Tutorial uploaded successfully!", [
         { text: "OK", onPress: () => router.back() }
       ]);
@@ -75,7 +105,7 @@ export default function UploadTutorialScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <AppText variant="h2" style={styles.headerTitle}>Upload Tutorial</AppText>
-      
+
       <View style={styles.inputContainer}>
         <AppText variant="small" style={styles.label}>Title</AppText>
         <TextInput
@@ -102,12 +132,12 @@ export default function UploadTutorialScreen() {
 
       <View style={styles.videoSection}>
         <AppText variant="small" style={styles.label}>Video Content</AppText>
-        
+
         {videoUri ? (
           <View style={styles.videoPreviewContainer}>
             <VideoPreview videoUrl={videoUri} />
-            <TouchableOpacity 
-              style={styles.removeVideoButton} 
+            <TouchableOpacity
+              style={styles.removeVideoButton}
               onPress={clearVideo}
               disabled={loading}
             >
@@ -115,8 +145,8 @@ export default function UploadTutorialScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity 
-            style={styles.videoPickerBox} 
+          <TouchableOpacity
+            style={styles.videoPickerBox}
             onPress={pickVideo}
             disabled={loading}
           >
@@ -127,13 +157,13 @@ export default function UploadTutorialScreen() {
       </View>
 
       <View style={styles.buttonContainer}>
-        <AppButton 
-          title={loading ? "Uploading..." : "Upload Tutorial"} 
+        <AppButton
+          title={loading ? "Uploading..." : "Upload Tutorial"}
           onPress={handleUpload}
           disabled={loading}
           fullWidth
         />
-        
+
         {loading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={Color.primary} />

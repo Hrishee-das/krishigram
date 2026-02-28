@@ -5,29 +5,29 @@ import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useEffect, useState } from 'react';
 import {
-    FlatList,
-    Image,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import AppText from '../AppText';
 
-export default function CommentsModal({ 
-  visible, 
-  onClose, 
-  post, 
+export default function CommentsModal({
+  visible,
+  onClose,
+  post,
   onCommentAdded,
-  currentComments 
+  currentComments
 }) {
   const [commentText, setCommentText] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const currentUser = useAuthStore((state) => state.user);
   const myProfilePic = currentUser?.profilePic || "https://via.placeholder.com/150";
   const myName = currentUser?.name || "CurrentUser";
@@ -37,7 +37,7 @@ export default function CommentsModal({
     if (!dateString) return 'Just now';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return 'Just now';
-    
+
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -104,7 +104,7 @@ export default function CommentsModal({
 
     const uri = recording.getURI();
     setRecording(undefined);
-    
+
     // Construct local payload mimicking a file selection
     const audioData = {
       uri,
@@ -126,7 +126,7 @@ export default function CommentsModal({
   const handleAudioSubmit = async (audioData) => {
     try {
       setLoading(true);
-      
+
       const optimisticComment = {
         _id: `temp-${Date.now()}`,
         user: { _id: currentUser?._id, name: myName, profilePic: myProfilePic },
@@ -134,7 +134,7 @@ export default function CommentsModal({
         media: { uri: audioData.uri },
         createdAt: new Date().toISOString()
       };
-      
+
       onCommentAdded(optimisticComment);
 
       if (post?._id || post?.id) {
@@ -149,37 +149,41 @@ export default function CommentsModal({
 
   const togglePlayback = async (commentId, audioUri) => {
     try {
-      // If pressing the same one that is playing, pause it
+      // ── Tapping the SAME comment that is already playing → pause it
       if (playingCommentId === commentId && soundCache[commentId]) {
         await soundCache[commentId].pauseAsync();
         setPlayingCommentId(null);
         return;
       }
 
-      // If playing another one, stop the previous one
+      // ── Playing a different comment → pause the current one first
       if (playingCommentId && soundCache[playingCommentId]) {
         await soundCache[playingCommentId].pauseAsync();
-        await soundCache[playingCommentId].setPositionAsync(0);
+        setPlayingCommentId(null);
       }
 
-      // Play the requested one
+      // ── Reuse cached sound: seek to 0 then play
       if (soundCache[commentId]) {
+        await soundCache[commentId].setPositionAsync(0);
         await soundCache[commentId].playAsync();
         setPlayingCommentId(commentId);
-      } else {
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: audioUri },
-          { shouldPlay: true },
-          (status) => {
-            if (status.didJustFinish) {
-              setPlayingCommentId(null);
-              newSound.setPositionAsync(0);
-            }
-          }
-        );
-        setSoundCache(prev => ({...prev, [commentId]: newSound}));
-        setPlayingCommentId(commentId);
+        return;
       }
+
+      // ── First play: load with isLooping: false
+      // IMPORTANT: do NOT call any Audio API inside the callback —
+      // calling stopAsync/setPositionAsync in didJustFinish restarts playback.
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: audioUri },
+        { shouldPlay: true, isLooping: false },
+        (status) => {
+          if (status.didJustFinish) {
+            setPlayingCommentId(null);
+          }
+        }
+      );
+      setSoundCache(prev => ({ ...prev, [commentId]: newSound }));
+      setPlayingCommentId(commentId);
     } catch (err) {
       console.log("Audio playback error:", err);
     }
@@ -198,7 +202,7 @@ export default function CommentsModal({
 
     try {
       setLoading(true);
-      
+
       // Optimistic UI Update locally
       const optimisticComment = {
         _id: `temp-${Date.now()}`,
@@ -210,7 +214,7 @@ export default function CommentsModal({
         text: commentText,
         createdAt: new Date().toISOString()
       };
-      
+
       onCommentAdded(optimisticComment);
       const tempText = commentText;
       setCommentText('');
@@ -230,7 +234,7 @@ export default function CommentsModal({
   const renderComment = ({ item }) => {
     const authorName = item?.user?.name || item?.author?.name || 'Unknown User';
     const authorPic = item?.user?.profilePic || item?.author?.profilePic || 'https://via.placeholder.com/150';
-    
+
     const isAudio = item?.commentType === "audio";
     let mediaUrl = null;
     if (isAudio && item?.media) {
@@ -243,7 +247,7 @@ export default function CommentsModal({
       <View style={styles.commentContainer}>
         <Image source={{ uri: authorPic }} style={styles.commentAvatar} />
         <View style={styles.commentContent}>
-          
+
           {isAudio ? (
             <View style={styles.audioBubble}>
               <TouchableOpacity onPress={() => togglePlayback(item._id || item.id, mediaUrl)} style={styles.audioBubblePlay}>
@@ -278,9 +282,9 @@ export default function CommentsModal({
     >
       <View style={styles.modalOverlay}>
         <TouchableOpacity style={styles.overlayDismiss} onPress={onClose} activeOpacity={1} />
-        
-        <KeyboardAvoidingView 
-          style={styles.bottomSheet} 
+
+        <KeyboardAvoidingView
+          style={styles.bottomSheet}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           {/* Handlebar & Title */}
@@ -307,7 +311,7 @@ export default function CommentsModal({
           {/* Input Area */}
           <View style={styles.inputSection}>
             <Image source={{ uri: myProfilePic }} style={styles.inputAvatar} />
-            
+
             {isRecording ? (
               <View style={[styles.inputWrapper, styles.recordingWrapper]}>
                 <View style={styles.recordingStatus}>
@@ -332,18 +336,18 @@ export default function CommentsModal({
                   multiline
                   maxLength={500}
                 />
-                
+
                 {commentText.trim().length > 0 ? (
-                  <TouchableOpacity 
-                    style={styles.sendButton} 
+                  <TouchableOpacity
+                    style={styles.sendButton}
                     onPress={handleSubmit}
                     disabled={loading}
                   >
                     <Ionicons name="send" size={20} color="#60ba8a" />
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity 
-                    style={styles.micButton} 
+                  <TouchableOpacity
+                    style={styles.micButton}
                     onPress={startRecording}
                   >
                     <Ionicons name="mic" size={22} color="#8E8E93" />
@@ -371,7 +375,7 @@ const styles = StyleSheet.create({
     backgroundColor: Color.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    height: '80%', 
+    height: '80%',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,

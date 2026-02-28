@@ -1,11 +1,11 @@
 import { useFeedStories } from "@/hooks/useStories"; // adjust path
 import { useAuthStore } from "@/utils/authStore"; // adjust path
 import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import StoryAvatar from "./StoryAvatar";
 
@@ -56,7 +56,14 @@ export default function StoryRow({ onStoryPress, onAddStory }) {
             <StoryAvatar
               authorGroup={item}
               isOwn={item.isOwn}
-              onPress={item.isOwn ? onAddStory : onStoryPress}
+              onPress={() => {
+                if (item.isOwn && item.stories.length === 0) {
+                  onAddStory();
+                } else {
+                  onStoryPress(item);
+                }
+              }}
+              onAddPress={item.isOwn ? onAddStory : undefined}
             />
           )}
         />

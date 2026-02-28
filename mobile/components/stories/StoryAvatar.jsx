@@ -6,9 +6,10 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
  * Props:
  *  - authorGroup: { author: { _id, name, profilePic }, stories: [...] }
  *  - onPress: (authorGroup) => void
+ *  - onAddPress: () => void
  *  - isOwn: boolean  (shows "+" add button instead of ring)
  */
-export default function StoryAvatar({ authorGroup, onPress, isOwn = false }) {
+export default function StoryAvatar({ authorGroup, onPress, onAddPress, isOwn = false }) {
   const { author, stories } = authorGroup;
   const hasUnviewed = stories?.some((s) => !s.viewedByMe); // backend can send viewedByMe flag
   const preview = stories?.[0];
@@ -48,9 +49,14 @@ export default function StoryAvatar({ authorGroup, onPress, isOwn = false }) {
 
         {/* Own story: add button */}
         {isOwn ? (
-          <View style={styles.addBtn}>
-            <Ionicons name="add" size={16} color="#fff" />
-          </View>
+          <TouchableOpacity
+            style={styles.addBtnWrapper}
+            onPress={onAddPress || (() => onPress?.(authorGroup))}
+          >
+            <View style={styles.addBtn}>
+              <Ionicons name="add" size={16} color="#fff" />
+            </View>
+          </TouchableOpacity>
         ) : null}
 
         {/* Unviewed ring indicator */}
@@ -120,10 +126,16 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  addBtn: {
+  addBtnWrapper: {
     position: "absolute",
-    bottom: 28,
-    left: CARD_W / 2 - 12,
+    bottom: 24,
+    left: CARD_W / 2 - 16,
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addBtn: {
     width: 24,
     height: 24,
     borderRadius: 12,

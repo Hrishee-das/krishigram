@@ -38,11 +38,8 @@ const createStory = async (req, res) => {
 // ─── Get Feed Stories ────────────────────────────────────────
 const getFeedStories = async (req, res) => {
   try {
-    const currentUser = await User.findById(req.user._id).select("following");
-    const following = currentUser.following || [];
-
+    // Fetch all unexpired stories on the platform to create a global feed
     const stories = await Story.find({
-      author: { $in: [...following, req.user._id] },
       expiresAt: { $gt: new Date() },
     })
       .populate("author", "name profilePic")

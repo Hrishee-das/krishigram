@@ -27,7 +27,7 @@ export default function CreatePostModal() {
 
   const [description, setDescription] = useState("");
   const [image, setImage] = useState(null);
-  
+
   // Audio state
   const [recording, setRecording] = useState();
   const [isRecording, setIsRecording] = useState(false);
@@ -39,6 +39,8 @@ export default function CreatePostModal() {
 
   // Toggle state
   const [postType, setPostType] = useState("post");
+  const [location, setLocation] = useState("");
+  const [locationVisible, setLocationVisible] = useState(false);
 
   // User details placeholder
   const myName = "John Doe";
@@ -99,11 +101,11 @@ export default function CreatePostModal() {
     if (!recording) return;
     setIsRecording(false);
     await recording.stopAndUnloadAsync();
-    
+
     await Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
     });
-    
+
     const uri = recording.getURI();
     setRecording(undefined);
     setAudioUri(uri);
@@ -149,8 +151,8 @@ export default function CreatePostModal() {
   useEffect(() => {
     return sound
       ? () => {
-          sound.unloadAsync();
-        }
+        sound.unloadAsync();
+      }
       : undefined;
   }, [sound]);
 
@@ -199,7 +201,7 @@ export default function CreatePostModal() {
         await createPost({
           title: derivedTitle,
           description,
-          location: "",
+          location,
           postType: pType,
           mediaType: pType === "audio" ? "audio" : undefined,
           media: mediaPayload,
@@ -224,7 +226,8 @@ export default function CreatePostModal() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "android" ? 80 : 0}
       >
         {/* ── Modern Header ── */}
         <View style={styles.header}>
@@ -370,6 +373,28 @@ export default function CreatePostModal() {
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Location input inside scroll — always stays above keyboard */}
+          {locationVisible && (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={18} color="#F44336" style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.locationInput}
+                placeholder="Add location (e.g. Pune, Maharashtra)"
+                placeholderTextColor="#A1A1AA"
+                value={location}
+                onChangeText={setLocation}
+                returnKeyType="done"
+                onSubmitEditing={() => setLocationVisible(false)}
+                autoFocus
+              />
+              {location.length > 0 && (
+                <TouchableOpacity onPress={() => setLocation("")}>
+                  <Ionicons name="close-circle" size={18} color="#A1A1AA" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </ScrollView>
 
         {/* ── Premium Bottom Action Cards ── */}
@@ -402,20 +427,23 @@ export default function CreatePostModal() {
               <AppText style={styles.actionCardText}>{isRecording ? "Stop" : "Audio"}</AppText>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionCard} activeOpacity={0.7}>
-              <View style={[styles.actionIconBg, { backgroundColor: "#e3f2fd" }]}>
-                <Ionicons name="person" size={24} color="#2196F3" />
-              </View>
-              <AppText style={styles.actionCardText}>Tag People</AppText>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionCard} activeOpacity={0.7}>
-              <View style={[styles.actionIconBg, { backgroundColor: "#ffebee" }]}>
+            {/* Location card */}
+            <TouchableOpacity
+              style={[styles.actionCard, (locationVisible || location) && styles.actionCardLocation]}
+              onPress={() => setLocationVisible(v => !v)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.actionIconBg, { backgroundColor: location ? "#ffebee" : "#fff3f3" }]}>
                 <Ionicons name="location" size={24} color="#F44336" />
               </View>
-              <AppText style={styles.actionCardText}>Location</AppText>
+              <AppText style={styles.actionCardText} numberOfLines={1}>
+                {location ? location.slice(0, 10) + (location.length > 10 ? '…' : '') : "Location"}
+              </AppText>
             </TouchableOpacity>
           </ScrollView>
+
+          {/* Location text input — shown when card is tapped */}
+          {locationVisible && null /* moved inside ScrollView above */}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -650,6 +678,10 @@ const styles = StyleSheet.create({
     borderColor: "#EF4444",
     backgroundColor: "#FEF2F2",
   },
+  actionCardLocation: {
+    borderColor: "#F44336",
+    backgroundColor: "#fff5f5",
+  },
   // ── Audio Preview
   recordingContainer: {
     flexDirection: "row",
@@ -705,5 +737,22 @@ const styles = StyleSheet.create({
   },
   audioClearBtn: {
     padding: 8,
-  }
+  },
+  /* ── Location input ── */
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#f4f4f5',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+  },
+  locationInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1c1e21',
+    paddingVertical: 0,
+    fontWeight: '500',
+  },
 });
