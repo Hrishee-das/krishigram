@@ -58,15 +58,14 @@ export default function UniversalAIScreen() {
       { text: textToSend.trim(), language: i18n.language }, 
       {
         onSuccess: (data) => {
-          let responseText = "I encountered an error.";
+          let responseText = t("error_occurred");
           
           if (data) {
-            // Universal AI returns data.data.message.aiResponse or data.data.pythonRaw.response
             const nestedData = data.data || data;
             responseText = nestedData.message?.aiResponse || 
                            nestedData.pythonRaw?.response || 
                            nestedData.response || 
-                           "I encountered an error.";
+                           t("error_occurred");
 
             if (responseText.includes("RESOURCE_EXHAUSTED") || responseText.includes("429")) {
                 responseText = t("trial_quota_reached");
@@ -121,7 +120,7 @@ export default function UniversalAIScreen() {
       <Animated.View style={[styles.mainPanel, { opacity: fadeAnim }]}>
         <View style={styles.header}>
             <View>
-                <Text style={styles.headerTitle}>KrishiGram AI</Text>
+                <Text style={styles.headerTitle}>{t('app_name')} AI</Text>
                 <Text style={styles.headerStatus}>{t('assistant_status')}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>

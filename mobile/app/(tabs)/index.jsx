@@ -16,12 +16,16 @@ import Color from "@/constants/color";
 import AppCarousel from "@/components/AppCarousel";
 
 import AIAssistantBottomSheet from "@/components/AIAssistantBottomSheet";
-import HeaderToolsMenu from "@/components/home/HeaderToolsMenu";
 import PlantDetectionCarousel from "@/components/home/PlantDetectionCarousel";
 import StoryCreator from "@/components/stories/StoryCreator";
 import StoryRow from "@/components/stories/StoryRow";
 import StoryViewer from "@/components/stories/StoryViewer";
 import { useFeedStories } from "@/hooks/useStories";
+import RecentDetectionsWidget from "@/components/home/RecentDetectionsWidget";
+import ToolsWidget from "@/components/home/ToolsWidget";
+import LibraryWidget from "@/components/home/LibraryWidget";
+import WeatherWidget from "@/components/home/WeatherWidget";
+import HeaderLanguagePicker from "@/components/home/HeaderLanguagePicker";
 
 export default function HomeScreen() {
   const { data: feedGroups, refetch } = useFeedStories();
@@ -49,7 +53,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     navigation.setOptions({
-      headerRight: () => <HeaderToolsMenu />,
+      headerRight: () => <HeaderLanguagePicker />,
     });
   }, [navigation]);
 
@@ -113,7 +117,28 @@ export default function HomeScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
+<ScrollView>
       {/* ── Story Viewer ── */}
+        {/* ── Recent Detections ── */}
+        <RecentDetectionsWidget />
+
+        {/* ── Plant Detection Carousel ── */}
+        <PlantDetectionCarousel onImageSelected={handleImageSelected} />
+
+        {/* ── Farming Tools & Calculators ── */}
+        <ToolsWidget />
+
+        {/* ── KrishiGram Library ── */}
+        <LibraryWidget />
+
+        {/* ── Real-time Weather ── */}
+        <WeatherWidget />
+
+        {/* Bottom padding for tab bar */}
+        <View style={{ height: 120 }} />
+      </ScrollView>
+
+      {/* ── Story Viewer Modal ── */}
       <StoryViewer
         visible={viewerVisible}
         groups={feedGroups ?? []}
@@ -172,20 +197,6 @@ const styles = StyleSheet.create({
     marginLeft: 14,
     fontWeight: "700",
     color: "#1c1e21",
-  },
-  slide: {
-    height: 180,
-    borderRadius: 10,
-    padding: 20,
-    justifyContent: "center",
-  },
-  slideTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  slideSubtitle: {
-    marginTop: 4,
-    color: "#555",
   },
   chatFab: {
     position: "absolute",

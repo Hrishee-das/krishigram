@@ -1,3 +1,4 @@
+import { Audio } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
@@ -73,7 +74,7 @@ const ChatBubble = ({ isUser, text, image, data, isDiagnosis }) => {
           <View>
             <Text style={styles.diagnosisTitle}>{t('diagnosis_complete')} ✨</Text>
             <Text style={styles.diagnosisText}>
-              {t('detected')} <Text style={{fontWeight: 'bold', color: "#D32F2F"}}>{data?.disease_name || 'Issue'}</Text>
+              {t('detected')} <Text style={{fontWeight: 'bold', color: "#D32F2F"}}>{data?.disease_name || t('issue')}</Text>
             </Text>
             
             <View style={styles.divider} />
@@ -82,7 +83,7 @@ const ChatBubble = ({ isUser, text, image, data, isDiagnosis }) => {
             <Text style={styles.subText}>{data?.what_is_this_disease || t('info_pending')}</Text>
             
             <Text style={styles.label}>{t('causes')}:</Text>
-            <Text style={styles.subText}>{data?.causes || "N/A"}</Text>
+            <Text style={styles.subText}>{data?.causes || t('not_available')}</Text>
 
             <View style={styles.divider} />
             <Text style={styles.label}>{t('organic_treatment')}:</Text>
@@ -203,7 +204,7 @@ export default function AIAssistantBottomSheet({ visible, onClose, initialData, 
       onError: (error) => {
           const msg = error.message;
           if (msg.includes("plant") || msg.includes("clear image") || msg.includes("blurry")) {
-              Alert.alert(t("diagnosis_failed"), msg, [{ text: "OK" }]);
+              Alert.alert(t("diagnosis_failed"), msg, [{ text: t("ok") }]);
               setMessages(prev => prev.filter(m => m.text !== t("analyzing_health")));
           } else {
               setMessages(prev => [...prev, { id: Date.now().toString(), text: `⚠️ ${msg}`, isUser: false }]);
@@ -230,25 +231,95 @@ export default function AIAssistantBottomSheet({ visible, onClose, initialData, 
   };
 
   const { mutate: agroChat, isPending: isChatting } = useAgroChat();
+  const [isRecording, setIsRecording] = useState(false);
+  const recordingRef = useRef(null);
 
-  const handleSend = () => {
-    if (!inputText.trim()) return;
+  const startRecording = async () => {
+    try {
+      // Safety check: Clean up existing recording if any
+      if (recordingRef.current) {
+        try {
+          await recordingRef.current.stopAndUnloadAsync();
+        } catch (e) {
+          // ignore already stopped
+        }
+        recordingRef.current = null;
+      }
+
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('permission_denied'), t('mic_permission_required'));
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      recordingRef.current = null;
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      if (!recordingRef.current) {
+          setIsRecording(false);
+          return;
+      }
+      setIsRecording(false);
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+      handleSend(null, uri);
+    } catch (err) {
+      console.error('Failed to stop recording', err);
+      setIsRecording(false);
+    }
+  };
+
+  const handleSend = (textOverride = null, voiceUri = null) => {
+    const textToSend = textOverride || inputText.trim();
+    if (!textToSend && !voiceUri) return;
     
-    const userMessage = { id: Date.now().toString(), text: inputText.trim(), isUser: true };
+    const userMessage = { 
+        id: Date.now().toString(), 
+        text: textToSend || (voiceUri ? `🎤 ${t('voice_message')}` : ""), 
+        isUser: true 
+    };
     setMessages(prev => [...prev, userMessage]);
     
     setInputText("");
-    const currentQuery = inputText.trim();
+    
+    const formData = {
+        language: i18n.language,
+        sessionId
+    };
 
-    agroChat({ query: currentQuery, language: i18n.language, sessionId }, {
+    if (voiceUri) {
+        formData.voice = voiceUri;
+    } else {
+        formData.query = textToSend;
+    }
+
+    agroChat(formData, {
       onSuccess: (response) => {
         if (response.session) setSessionId(response.session);
         
         let responseText = t("internal_error");
         if (response && response.status === "success") {
-            // Check both possible levels of nesting
+            const raw = response.data.pythonRaw || response.data;
             responseText = response.data.message?.aiResponse || 
-                           response.data.pythonRaw?.response || 
+                           raw.response || 
+                           raw.report?.response ||
                            response.data.response;
         }
 
@@ -324,14 +395,16 @@ export default function AIAssistantBottomSheet({ visible, onClose, initialData, 
                 </TouchableOpacity>
               </View>
               <TouchableOpacity 
-                style={[styles.micButton, (isAnalyzing || isChatting) && { opacity: 0.6 }]} 
-                onPress={handleSend}
+                style={[styles.micButton, (isAnalyzing || isChatting) && { opacity: 0.6 }, isRecording && { backgroundColor: '#D32F2F' }]} 
+                onPressIn={!inputText ? () => startRecording() : null}
+                onPressOut={!inputText ? () => stopRecording() : null}
+                onPress={inputText ? () => handleSend() : null}
                 disabled={isAnalyzing || isChatting}
               >
                 {isChatting ? (
                     <ActivityIndicator size="small" color="#FFF" />
                 ) : (
-                    <MaterialCommunityIcons name={inputText ? "send" : "microphone"} size={22} color="#FFF" />
+                    <MaterialCommunityIcons name={inputText ? "send" : (isRecording ? "stop" : "microphone")} size={22} color="#FFF" />
                 )}
               </TouchableOpacity>
             </View>

@@ -4,6 +4,8 @@ import {
   analyzeQuery,
   getChatHistory,
   getChatSessions,
+  getLibraryData,
+  getRecentDetections,
 } from "../controllers/aiChatController.js";
 import multer from "multer";
 
@@ -26,5 +28,7 @@ router.post(
 );
 router.get("/sessions", getChatSessions);
 router.get("/history", getChatHistory);
+router.get("/library", getLibraryData);
+router.get("/recent-detections", getRecentDetections);
 
 export default router;

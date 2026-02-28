@@ -12,3 +12,15 @@ langchain-pinecone
 groq
 duckduckgo-search
 slowapi
+langchain-community
+langchain
+gtts
+SpeechRecognition
+pydub
+numpy
+faiss-cpu
+Pillow
+openai
+tavily-python
+langchain-openai
+langchain-core

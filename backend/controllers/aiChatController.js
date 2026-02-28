@@ -105,10 +105,12 @@ export const analyzeQuery = async (req, res, next) => {
       },
       language: language || "en",
       aiResponse:
-        pythonResponseData.analysis?.response ||
-        pythonResponseData.analysis?.treatment_plan ||
+        pythonResponseData.report?.response ||
+        (pythonResponseData.report?.what_is_this_disease 
+          ? `${pythonResponseData.report.what_is_this_disease}\n\nSymptoms: ${pythonResponseData.report.symptoms}`
+          : "") ||
         "",
-      diseaseDetected: pythonResponseData.analysis?.disease_name || null,
+      diseaseDetected: pythonResponseData.report?.disease_name || null,
       confidence: pythonResponseData.confidence || null,
       ttsFriendly: pythonResponseData.tts_friendly || "",
     });
@@ -169,6 +171,51 @@ export const getChatHistory = async (req, res, next) => {
       },
     });
   } catch (error) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
+export const getLibraryData = async (req, res, next) => {
+  try {
+    const { language } = req.query;
+    const pythonUrl = `${process.env.PYTHON_AI_URL}/api/library`;
+    console.log(`[DEBUG] Fetching library data from: ${pythonUrl}?language=${language || "English"}`);
+
+    const response = await axios.get(pythonUrl, {
+      params: { language: language || "English" },
+      timeout: 30000 // 30s timeout
+    });
+
+    console.log(`[DEBUG] Python library response received. Items: ${response.data.length}`);
+
+    res.status(200).json({
+      status: "success",
+      data: response.data
+    });
+  } catch (error) {
+    console.error("Error in getLibraryData:", error.message);
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
+export const getRecentDetections = async (req, res, next) => {
+  try {
+    console.log(`[DEBUG] Fetching recent detections for user: ${req.user._id}`);
+    const detections = await AIChatMessage.find({
+      user: req.user._id,
+      diseaseDetected: { $ne: null }
+    })
+    .sort({ createdAt: -1 })
+    .limit(10);
+    
+    console.log(`[DEBUG] Found ${detections.length} detections.`);
+
+    res.status(200).json({
+      status: "success",
+      data: detections
+    });
+  } catch (error) {
+    console.error("[ERROR] getRecentDetections:", error.message);
     res.status(500).json({ status: "error", message: error.message });
   }
 };

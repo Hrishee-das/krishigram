@@ -100,12 +100,23 @@ export const usePlantDetection = () => {
 
 export const useAgroChat = () => {
     return useMutation({
-      mutationFn: async ({ query, language, sessionId }) => {
+      mutationFn: async ({ query, language, sessionId, voice }) => {
         const formData = new FormData();
-        formData.append('text', query); // Backend expects "text"
+        if (query) formData.append('text', query);
         if (sessionId) formData.append('sessionId', sessionId);
         formData.append('language', getBackendLanguage(language));
   
+        if (voice) {
+            const filename = voice.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `audio/${match[1]}` : `audio/m4a`;
+            formData.append('voice', {
+                uri: voice,
+                name: filename,
+                type,
+            });
+        }
+
         const token = useAuthStore.getState().token;
   
         const response = await fetchWithTimeout(`${BACKEND_URL}/aichat/analyze`, {

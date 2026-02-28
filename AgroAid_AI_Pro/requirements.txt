@@ -1,6 +1,6 @@
 fastapi==0.110.0
 uvicorn[standard]==0.27.1
-
+tavily-python
 python-multipart==0.0.9
 pydantic>=2.6,<3
 pinecone-client
@@ -11,6 +11,12 @@ langchain-pinecone
 groq
 duckduckgo-search
 slowapi
+langchain-community
+opencv-python
+SpeechRecognition
+pydub
+numpy
+faiss-cpu
 
 tensorflow==2.15.0
 Pillow

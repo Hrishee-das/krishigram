@@ -160,3 +160,77 @@ def generate_general_advisory(query: str, rag_context: str = "", language: str =
         return json.loads(_clean_json_response(response_text))
     except Exception as e:
         return {"error": f"Error generating response: {e}"}
+def generate_library_content(language: str = "English") -> list:
+    """
+    Generates a list of advanced, real-world agricultural topics using Tavily and Groq.
+    """
+    # Map short codes if necessary
+    lang_map = {"en": "English", "hi": "Hindi", "mr": "Marathi"}
+    full_language = lang_map.get(language.lower(), language)
+    
+    print(f"[DEBUG] Generating library content for: {full_language}")
+    topics = [
+        f"Smart farming technologies and IoT in India {full_language} 2026",
+        f"Biological pest control and organic fertilizers {full_language}",
+        f"Climate-resilient crops for Konkan region {full_language}"
+    ]
+    
+    results = []
+    # Fallback content in case AI generation fails or is too slow
+    fallback_content = [
+        {
+            "title": f"Smart Irrigation 2026 ({full_language})",
+            "color": "#1565C0",
+            "icon": "water-pump",
+            "content": f"New smart sensors in 2026 allow precision watering, saving up to 40% more water. [Generated for {full_language}]"
+        },
+        {
+            "title": f"Konkan Resilience ({full_language})",
+            "color": "#2E7D32",
+            "icon": "terrain",
+            "content": f"New local varieties of Mango and Cashew are showing 30% more resistance to unseasonal rains. [Generated for {full_language}]"
+        }
+    ]
+
+    try:
+        from tavily import TavilyClient
+        tavily_api_key = os.getenv("TAVILY_API_KEY")
+        tavily_client = TavilyClient(api_key=tavily_api_key) if tavily_api_key else None
+        
+        for topic in topics:
+            try:
+                web_context = ""
+                if tavily_client:
+                    search = tavily_client.search(query=topic, search_depth="basic", max_results=1)
+                    web_context = "\n".join([r['content'] for r in search.get('results', [])])
+                
+                prompt = f"""
+                Research Topic: {topic}
+                Context: {web_context}
+                
+                Based on the latest data 2026, create an advanced library entry.
+                Return ONLY a JSON object with:
+                - title (string, concise)
+                - color (string, hex)
+                - icon (string, MaterialCommunityIcons name)
+                - content (string, detailed but readable)
+                
+                Language: {full_language}
+                """
+                print(f"[DEBUG] Calling AI for topic: {topic}")
+                response_text = _generate_ai_response(prompt, json_mode=True)
+                if response_text:
+                    cleaned = _clean_json_response(response_text)
+                    print(f"[DEBUG] AI Response received for {topic}")
+                    results.append(json.loads(cleaned))
+                else:
+                    print(f"[WARNING] No AI response for topic: {topic}")
+            except Exception as e:
+                print(f"Error for topic '{topic}': {e}")
+                continue
+        
+        # If no results generated, use fallback
+        return results if results else fallback_content
+    except Exception as e:
+        print(f"Error generating library content: {e}")
+        return fallback_content

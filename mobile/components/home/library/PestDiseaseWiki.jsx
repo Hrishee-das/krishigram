@@ -2,16 +2,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 const PEST_DATA = [
   { id: '1', name: 'Stem Borer', crop: 'Rice', treatment: 'Use Carbofuran 3G or Chlorpyriphos.' },
   { id: '2', name: 'Aphids', crop: 'Vegetables', treatment: 'Spray Neem oil or Imidacloprid.' },
   { id: '3', name: 'Powdery Mildew', crop: 'Mango', treatment: 'Apply Sulphur dust or Dinocap.' },
   { id: '4', name: 'Leaf Hopper', crop: 'Cotton', treatment: 'Use Acetamiprid or Fipronil.' },
+  { id: '5', name: 'Fruit Borer', crop: 'Tomato', treatment: 'Use Flubendiamide or Coragen.' },
+  { id: '6', name: 'Early Blight', crop: 'Potato', treatment: 'Spray Mancozeb or Copper Oxychloride.' },
+  { id: '7', name: 'Mealybugs', crop: 'Lemon/Grapes', treatment: 'Spray Buprofezin or Cryptolaemus beetles.' },
+  { id: '8', name: 'Red Rot', crop: 'Sugarcane', treatment: 'Select healthy setts, use Trichoderma or Carbendazim.' },
+  { id: '9', name: 'Downy Mildew', crop: 'Grapes', treatment: 'Spray Metalaxyl or Bordeaux mixture.' }
 ];
 
 export default function PestDiseaseWiki({ onClose }) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
+  
   const filtered = PEST_DATA.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
     p.crop.toLowerCase().includes(search.toLowerCase())
@@ -23,7 +31,7 @@ export default function PestDiseaseWiki({ onClose }) {
         <TouchableOpacity onPress={onClose} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.title}>Pests & Disease Wiki</Text>
+        <Text style={styles.title}>{t('pests_diseases')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -31,7 +39,7 @@ export default function PestDiseaseWiki({ onClose }) {
         <Ionicons name="search" size={20} color="#999" />
         <TextInput 
           style={styles.searchInput} 
-          placeholder="Search pest or crop..." 
+          placeholder={t('search_placeholder') || "Search pest or crop..."} 
           value={search}
           onChangeText={setSearch}
         />

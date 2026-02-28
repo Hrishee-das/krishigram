@@ -29,10 +29,11 @@ const TutorialHeaderTitle = () => (
 );
 
 const TabsLayout = () => {
-  const { t } = useTranslation();
   const { logOut } = useAuthStore();
+  const { t, i18n } = useTranslation();
   return (
     <Tabs
+      key={i18n.language}
       screenOptions={{
         headerShown: true, // Keep the original KrishiGram header shown
         tabBarActiveTintColor: "#2e7d32",
@@ -52,7 +53,7 @@ const TabsLayout = () => {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Krisheegram",
+          title: t("app_name"),
           tabBarLabel: t("home"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size} color={color} />
@@ -62,7 +63,7 @@ const TabsLayout = () => {
       <Tabs.Screen
         name="post"
         options={{
-          title: "Krisheegram",
+          title: "Krishigram",
           tabBarLabel: t("post"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />

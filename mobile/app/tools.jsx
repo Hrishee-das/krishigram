@@ -15,11 +15,6 @@ const ToolsScreen = () => {
         <AppText variant="h3" style={styles.title}>{t('tools_and_calculators')}</AppText>
         <ToolsWidget />
       </View>
-      
-      <View style={styles.section}>
-        <AppText variant="h3" style={styles.title}>{t('library_and_guides')}</AppText>
-        <LibraryWidget />
-      </View>
     </ScrollView>
   );
 };

@@ -160,6 +160,14 @@ async def audio_query(file: UploadFile = File(...), language: str = Form("Englis
     except Exception as e:
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
+@app.get("/api/library")
+async def get_library(language: str = "English"):
+    try:
+        content = llm_service.generate_library_content(language=language)
+        return JSONResponse(status_code=200, content=content)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
 @app.post("/api/analyze")
 @limiter.limit("15/minute")
 async def analyze_multimodal(
@@ -268,4 +276,4 @@ async def analyze_multimodal(
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=10000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

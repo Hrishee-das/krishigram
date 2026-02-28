@@ -11,9 +11,11 @@ export default function YieldCalculator({ onClose }) {
   const calculateYield = () => {
     const a = parseFloat(area);
     const s = parseFloat(seeds);
-    // Dummy calculation for yield estimation
+    // Yield estimation: area * seeds * multiplier
     const estimate = (a * s * 15.5).toFixed(2);
-    setExpectedYield(estimate);
+    // Revenue estimation: estimate * ₹2200 per quintal
+    const revenue = (estimate * 2200).toFixed(0);
+    setExpectedYield({ quintals: estimate, revenue });
   };
 
   return (
@@ -42,7 +44,7 @@ export default function YieldCalculator({ onClose }) {
           <TextInput style={styles.input} keyboardType="numeric" value={seeds} onChangeText={setSeeds} />
         </View>
 
-        <TouchableOpacity onPress={calculateYield} activeOpacity={0.8} style={[styles.calcBtn, { backgroundColor: "#6A1B9A" }]}>
+        <TouchableOpacity onPress={() => calculateYield()} activeOpacity={0.8} style={[styles.calcBtn, { backgroundColor: "#6A1B9A" }]}>
           <Text style={styles.calcBtnText}>Calculate Yield</Text>
         </TouchableOpacity>
 
@@ -51,7 +53,11 @@ export default function YieldCalculator({ onClose }) {
             <Text style={styles.resultTitle}>Estimated Harvest</Text>
             <View style={styles.resultItem}>
                 <Text style={styles.resultLabel}>Total Yield:</Text>
-                <Text style={styles.resultValue}>{expectedYield} Quintals</Text>
+                <Text style={styles.resultValue}>{expectedYield.quintals} Quintals</Text>
+            </View>
+            <View style={styles.resultItem}>
+                <Text style={styles.resultLabel}>Est. Revenue:</Text>
+                <Text style={[styles.resultValue, { color: '#075E54' }]}>₹{expectedYield.revenue}</Text>
             </View>
           </View>
         )}

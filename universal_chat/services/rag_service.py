@@ -2,7 +2,9 @@ import os
 import uuid
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
-DB_DIR = r"c:\Users\krish\OneDrive\Desktop\New folder\AgroAid_AI_Pro\faiss_index"
+# Look for faiss_index in the project root or sibling folder
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_DIR = os.path.join(os.path.dirname(base_dir), "AgroAid_AI_Pro", "faiss_index")
 
 # Global initialization
 vectorstore = None

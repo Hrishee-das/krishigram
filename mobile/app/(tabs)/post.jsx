@@ -7,11 +7,10 @@ import {
   StyleSheet,
   View
 } from "react-native";
-
-import AppText from "@/components/AppText";
+import AppText from "../../components/AppText";
+import { useAuthStore } from "../../utils/authStore";
 import CreatePostCard from "@/components/home/CreatePostCard";
 import PostCard from "@/components/home/PostCard";
-import { useAuthStore } from "@/utils/authStore";
 
 import { fetchPosts } from "@/services/post.api";
 
@@ -97,6 +96,7 @@ export default function PostTabFeedScreen() {
         {/* ── Bottom padding for the tab bar ── */}
         <View style={{ height: 100 }} />
       </ScrollView>
+
     </View>
   );
 }
