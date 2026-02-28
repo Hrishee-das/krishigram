@@ -7,10 +7,10 @@ import {
   Platform,
   Image,
   ScrollView,
-  Link,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../hooks/useAuth";
+import { Link } from "expo-router";
 
 import AppButton from "../components/AppButton";
 import AppText from "../components/AppText";
@@ -80,6 +80,14 @@ export default function SignInScreen() {
             disabled={loginMutation.isPending || !nameId || !password}
             fullWidth={true}
           />
+          <View style={styles.createAccountContainer}>
+            <AppText style={styles.createText}>
+              Don’t have an account?{" "}
+              <Link href="/create-account" asChild>
+                <AppText style={styles.createLink}>Create one</AppText>
+              </Link>
+            </AppText>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -145,5 +153,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: Color.white,
     color: Color.black,
+  },
+  createAccountContainer: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+
+  createText: {
+    fontSize: 14,
+    color: Color.textSecondary,
+  },
+
+  createLink: {
+    color: Color.primaryDark,
+    fontWeight: "600",
   },
 });

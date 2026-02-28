@@ -10,19 +10,12 @@ export const useAuth = () => {
     mutationFn: loginApi,
     onSuccess: (data) => {
       // Support multiple backend response structures safely
-      const token =
-        data?.token ||
-        data?.data?.token;
+      const token = data?.token || data?.data?.token;
 
-      const userObj =
-        data?.user ||
-        data?.data?.user;
+      const userObj = data?.user || data?.data?.user;
 
       // Update zustand state (supports both old & new logIn signatures)
       logIn(token, userObj);
-
-      // Keep old console log line
-      console.log("Login successful:", data.token);
     },
     onError: (error) => {
       console.error("Login error:", error.message);
@@ -41,13 +34,9 @@ export const useAuth = () => {
   const signUpMutation = useMutation({
     mutationFn: signUpApi,
     onSuccess: (data) => {
-      const token =
-        data?.token ||
-        data?.data?.token;
+      const token = data?.token || data?.data?.token;
 
-      const userObj =
-        data?.user ||
-        data?.data?.user;
+      const userObj = data?.user || data?.data?.user;
 
       // Supports both previous and updated implementation
       logIn(token, userObj);

@@ -8,7 +8,6 @@ export const useAuthStore = create(
       isLoggedIn: false,
       token: null,
       user: null,
-      shouldCreateAccount: false,
 
       logIn: (token, user = null) => {
         set({ isLoggedIn: true, token, user });
