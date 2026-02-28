@@ -7,6 +7,7 @@ import {
   Platform,
   Image,
   ScrollView,
+  Link,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../hooks/useAuth";

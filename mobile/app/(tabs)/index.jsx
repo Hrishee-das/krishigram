@@ -84,46 +84,17 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* ── Plant Detection Carousel ── */}
-        <PlantDetectionCarousel onImageSelected={handleImageSelected} />
 
-        {/* ── App Carousel ── */}
-        <AppCarousel slideWidth={350} interval={4000}>
-          <Pressable>
-            <View style={[styles.slide, { backgroundColor: "#E8F5E9" }]}>
-              <Text style={styles.slideTitle}>Take a Picture 📸</Text>
-              <Text style={styles.slideSubtitle}>
-                Scan your plant instantly
-              </Text>
-            </View>
-          </Pressable>
-
-          <View style={[styles.slide, { backgroundColor: "#FFF3E0" }]}>
-            <Text style={styles.slideTitle}>See Diagnosis 🔬</Text>
-            <Text style={styles.slideSubtitle}>
-              AI powered analysis
-            </Text>
-          </View>
-
-          <View style={[styles.slide, { backgroundColor: "#E3F2FD" }]}>
-            <Text style={styles.slideTitle}>Get Treatment 💊</Text>
-            <Text style={styles.slideSubtitle}>
-              Recommended solution
-            </Text>
-          </View>
-        </AppCarousel>
-
-        {/* Bottom Padding */}
         <View style={{ height: 120 }} />
       </ScrollView>
 
 <ScrollView>
       {/* ── Story Viewer ── */}
-        {/* ── Recent Detections ── */}
-        <RecentDetectionsWidget />
-
         {/* ── Plant Detection Carousel ── */}
         <PlantDetectionCarousel onImageSelected={handleImageSelected} />
+        {/* ── Recent Detections ──
+        <RecentDetectionsWidget /> */}
+
 
         {/* ── Farming Tools & Calculators ── */}
         <ToolsWidget />
