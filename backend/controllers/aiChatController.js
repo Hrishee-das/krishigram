@@ -78,6 +78,8 @@ export const analyzeQuery = async (req, res, next) => {
     // 4. Forward to Python Backend
     const pythonUrl = `${process.env.PYTHON_AI_URL}/api/analyze`;
 
+    console.log(`[DEBUG] AI Request Start: ${pythonUrl}`);
+    const startTime = Date.now();
     let pythonResponseData = {};
 
     try {
@@ -85,10 +87,14 @@ export const analyzeQuery = async (req, res, next) => {
         headers: {
           ...formData.getHeaders(),
         },
+        timeout: 110000 // 110s timeout to match frontend
       });
       pythonResponseData = pythonResponse.data;
+      const duration = (Date.now() - startTime) / 1000;
+      console.log(`[DEBUG] AI Request Success: ${duration}s`);
     } catch (err) {
-      console.error("Error from Python API:", err.message);
+      const duration = (Date.now() - startTime) / 1000;
+      console.error(`[ERROR] AI Request Failed after ${duration}s:`, err.message);
       return res
         .status(500)
         .json({ status: "error", message: "AI Backend failed to respond." });

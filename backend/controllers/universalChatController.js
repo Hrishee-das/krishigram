@@ -75,6 +75,8 @@ export const analyzeUniversalQuery = async (req, res, next) => {
     // 4. Forward to Python Backend (Universal Chat port 8001 assumed, or from Env)
     const pythonUrl = `${process.env.UNIVERSAL_AI_URL || "http://localhost:8001"}/api/universal_chat`;
     
+    console.log(`[DEBUG] Universal AI Request Start: ${pythonUrl}`);
+    const startTime = Date.now();
     let pythonResponseData = {};
     
     try {
@@ -83,10 +85,15 @@ export const analyzeUniversalQuery = async (req, res, next) => {
                 ...formData.getHeaders(),
             },
             maxBodyLength: Infinity,
-            maxContentLength: Infinity
+            maxContentLength: Infinity,
+            timeout: 110000 // 110s timeout to match frontend
         });
         pythonResponseData = pythonResponse.data;
+        const duration = (Date.now() - startTime) / 1000;
+        console.log(`[DEBUG] Universal AI Request Success: ${duration}s`);
     } catch(err) {
+        const duration = (Date.now() - startTime) / 1000;
+        console.error(`[ERROR] Universal AI Request Failed after ${duration}s:`, err.message);
         if (err.response && err.response.data) {
            const pythonError = err.response.data;
            const normalizedMessage = pythonError.message || pythonError.error || "Universal AI Validation failed";

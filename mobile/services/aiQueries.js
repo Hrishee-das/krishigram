@@ -6,7 +6,7 @@ import { IP_ADDRESS } from '../constants/ip';
 
 const BACKEND_URL = `http://${IP_ADDRESS}:3000/api/v1`;
 
-const fetchWithTimeout = async (url, options, timeout = 60000) => {
+const fetchWithTimeout = async (url, options, timeout = 120000) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {

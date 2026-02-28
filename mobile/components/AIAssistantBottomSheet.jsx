@@ -232,23 +232,27 @@ export default function AIAssistantBottomSheet({ visible, onClose, initialData, 
 
   const { mutate: agroChat, isPending: isChatting } = useAgroChat();
   const [isRecording, setIsRecording] = useState(false);
+  const isPreparingRef = useRef(false);
   const recordingRef = useRef(null);
+  const recordingStartTime = useRef(0);
 
   const startRecording = async () => {
     try {
-      // Safety check: Clean up existing recording if any
+      if (isPreparingRef.current) return;
+      isPreparingRef.current = true;
+
+      // Clean up any existing recording object completely
       if (recordingRef.current) {
         try {
           await recordingRef.current.stopAndUnloadAsync();
-        } catch (e) {
-          // ignore already stopped
-        }
+        } catch (e) {}
         recordingRef.current = null;
       }
 
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(t('permission_denied'), t('mic_permission_required'));
+        isPreparingRef.current = false;
         return;
       }
 
@@ -260,29 +264,66 @@ export default function AIAssistantBottomSheet({ visible, onClose, initialData, 
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
+      
       recordingRef.current = recording;
+      recordingStartTime.current = Date.now();
       setIsRecording(true);
+      isPreparingRef.current = false;
     } catch (err) {
-      console.error('Failed to start recording', err);
+      console.error('Failed to start recording:', err.message);
       recordingRef.current = null;
       setIsRecording(false);
+      isPreparingRef.current = false;
     }
   };
 
   const stopRecording = async () => {
     try {
-      if (!recordingRef.current) {
-          setIsRecording(false);
-          return;
+      // If we are still in the process of starting, wait a few ms then stop
+      if (isPreparingRef.current) {
+        setTimeout(async () => {
+            if (recordingRef.current) {
+                await performStop();
+            } else {
+                isPreparingRef.current = false;
+                setIsRecording(false);
+            }
+        }, 150);
+        return;
       }
-      setIsRecording(false);
-      await recordingRef.current.stopAndUnloadAsync();
-      const uri = recordingRef.current.getURI();
-      recordingRef.current = null;
-      handleSend(null, uri);
+
+      await performStop();
     } catch (err) {
-      console.error('Failed to stop recording', err);
+      console.log('Handled stop recording error:', err.message);
       setIsRecording(false);
+      isPreparingRef.current = false;
+    }
+  };
+
+  const performStop = async () => {
+    if (!recordingRef.current) return;
+    
+    // Minimum duration 500ms to avoid 'no valid audio data'
+    const duration = Date.now() - recordingStartTime.current;
+    if (duration < 600) {
+        await new Promise(resolve => setTimeout(resolve, 600 - duration));
+    }
+
+    try {
+        const recording = recordingRef.current;
+        recordingRef.current = null; 
+        setIsRecording(false);
+        isPreparingRef.current = false;
+        
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI();
+        
+        if (uri) handleSend(null, uri);
+    } catch (err) {
+        console.log("Stop internal catch:", err.message);
+        recordingRef.current = null;
+        setIsRecording(false);
+        isPreparingRef.current = false;
     }
   };
 
